@@ -20,17 +20,17 @@ class Dynamics:
         self.state_bounds = state_bounds
         self.input_bounds = input_bounds
         self.f_symbolic = None #Sympy representation of dynamics
-    def x_tp1(self, x_t, u_t, t, dt):
+    def q_tp1(self, q_t, u_t, t, dt):
         """
         Function to integrate dynamics forward in time for simulation.
-        Returns x_t+1 given x_t
+        Returns q_t+1 given q_t
         Inputs:
-        x_t: current state vector - numpy vector, (Nx1)
+        q_t: current state vector - numpy vector, (Nx1)
         u_t: current input vector - numpy vector, (Mx1)
         t: current time, float
         """
         #otherwise return Euler discretized next step
-        return x_t + self.f(x_t, u_t, t)*dt
+        return q_t + self.f(q_t, u_t, t)*dt
         
 class Bicycle(Dynamics):
     def __init__(self, state_bounds = None, input_bounds = None, a_bar = 0.4, b = 1, c = 0.5, m = 10, I_bf = 5, I_f = 1):
@@ -72,7 +72,7 @@ class Bicycle(Dynamics):
             alpha_ddot: acceleration of flywheel (rad/s^2)
 
             Function inputs:
-            x: current state, (6x1) numpy vector
+            q: current state, (6x1) numpy vector
             u: current input, (5x1) numpy vector
             t: current time
 
