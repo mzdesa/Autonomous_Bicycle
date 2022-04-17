@@ -82,6 +82,7 @@ class Bicycle(Dynamics):
             g = 9.81 #grav. constant
             #create variables for each vector element
             #Inputs:
+            print("u,shape =",np.shape(u))
             v = u[0, 0]
             v_dot = u[1, 0]
             sigma = u[2, 0]
@@ -89,6 +90,7 @@ class Bicycle(Dynamics):
             alpha_ddot = u[4, 0]
 
             #assign variables to state vector elements
+            print(q)
             theta = q[0, 0]
             theta_dot = q[1, 0]
             x = q[2, 0]
@@ -100,7 +102,10 @@ class Bicycle(Dynamics):
             a = (I_bf/m)
 
             #Assembly remaining derivative terms
-            theta_ddot = v_dot*tan(sigma)/b + v(sigma_dot)*(1/tan(sigma))**2/b
+            print("sigma:",sigma)
+            #COME BACK TO THIS THIS IS NOT RIGHT. REMOVE 0.01
+            #double check this equation
+            theta_ddot = v_dot*tan(sigma)/b + v*(sigma_dot)*(1/tan(sigma+0.01))**2/b
             x_dot = v*cos(theta)
             y_dot = v*sin(theta)
             psi_ddot = (1/(m*a**2))*(m*a**2*theta_dot**2*sin(psi)*cos(psi) + m*v*a*theta_dot*cos(psi)+m*c*a*theta_ddot*cos(psi)+I_f*alpha_ddot+m*a_bar*g*sin(psi))

@@ -45,16 +45,16 @@ class Simulation:
         q_t = self.q0  #initialize x_t as q0
         times = np.arange(0, T, self.dt) #create an array of times to go through
         self.times = times #store in class variable
-
+        print("got here!")
         for t in times:
             u_t = self.controller.control_input(q_t, q_goal) #get the current input
-            self.inputs = u_t #begin populating the input vector
+            #self.inputs = u_t #begin populating the input vector
             #Simulate the dynamics by getting the next step
-            q_t = self.dynamics.q_tp1(q_t, u_t, t) #get the next state by calling q_tp1 dynamics method
+            q_t = self.dynamics.q_tp1(q_t, u_t, t, self.dt) #get the next state by calling q_tp1 dynamics method
 
             #add the state and the input to the object parameters
-            self.states.append(q_t)
-            self.inputs.append(q_t)
+            self.states.append(q_t.tolist())
+            self.inputs.append(u_t)
 
         return self.states, self.inputs, times
 
@@ -77,8 +77,10 @@ class Simulation:
             fig.suptitle('Evolution of Bicycle States in Time')
             xlabels = 'Time (s)'
             ylabels = ['theta', 'theta_dot', 'x', 'y', 'psi', 'psi_dot']
+            print(np.shape(self.states))
+            print(self.states[0][0])
             for i in range(6):
-                axs[i].plot(self.states[i, :, self.times])
+                axs[i].plot(self.states[:][i])
                 axs[i].set(xlabel=xlabels, ylabel=ylabels[i]) #pull labels from the list above
             plt.show()
 
@@ -88,7 +90,7 @@ class Simulation:
             fig.suptitle('Evolution of Bicycle Inputs in Time')
             ylabels = ['v', 'v_dot', 'sigma', 'sigma_dot', 'alpha_ddot']
             for i in range(5):
-                axs[i].plot(self.states[i, :, self.times])
+                axs[i].plot(self.inputs[:][i])
                 axs[i].set(xlabel=xlabels, ylabel=ylabels[i])
             plt.show()
 
