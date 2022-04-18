@@ -14,7 +14,7 @@ bicycle_controller = VehicleController(balance_controller, path_planner_controll
 dynamics = Bicycle() #define a bicycle object
 
 #Next, define simulation object
-sim = Simulation(bicycle_controller, dynamics, np.zeros((6, 1)))
+sim = Simulation(bicycle_controller, dynamics, np.array([[np.pi/4], [np.pi/4], [0.5], [1], [np.pi/16], [0]]))
 print("sim", sim)
 
 #run the simulation
@@ -22,4 +22,6 @@ sim.simulate()
 
 print("SIMULATION COMPLETED")
 #plot the results
-sim.plot_results()
+
+#sim.plot_results()
+sim.animate()
