@@ -100,7 +100,7 @@ class Bicycle(Dynamics):
             a = (I_bf/m)
 
             #Assembly remaining derivative terms
-            theta_ddot = v_dot*tan(sigma)/b + v(sigma_dot)*(1/tan(sigma))**2/b
+            theta_ddot = v_dot*tan(sigma)/b + (v/b)*(sigma_dot)*(1/cos(sigma))**2
             x_dot = v*cos(theta)
             y_dot = v*sin(theta)
             psi_ddot = (1/(m*a**2))*(m*a**2*theta_dot**2*sin(psi)*cos(psi) + m*v*a*theta_dot*cos(psi)+m*c*a*theta_ddot*cos(psi)+I_f*alpha_ddot+m*a_bar*g*sin(psi))

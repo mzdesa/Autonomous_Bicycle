@@ -55,7 +55,7 @@ class BalanceController:
     """
     Generic skeleton class for a balancing controller - all controllers must follow this structure
     """
-    def __init__(self, gains = None):
+    def __init__(self, gains = np.zeros((6, ))):
         """
         Inputs:
         gains: numpy matrix of gains

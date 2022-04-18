@@ -28,7 +28,7 @@ class Simulation:
         self.q0 = q0
         self.dt = dt
         self.states = [q0] #(state_dimn x N ) vector of states over time
-        self.inputs = [] #(control_dimn x N) vector of control inputs over time
+        self.inputs = [np.zeros((6, 1))] #(control_dimn x N) vector of control inputs over time
         self.times = None
 
     def simulate(self, T = 10):
@@ -46,15 +46,23 @@ class Simulation:
         times = np.arange(0, T, self.dt) #create an array of times to go through
         self.times = times #store in class variable
 
+        # print(self.inputs)
+        # print(type(self.inputs))
+        # print("times: ", times)
+
         for t in times:
             u_t = self.controller.control_input(q_t, q_goal) #get the current input
-            self.inputs = u_t #begin populating the input vector
+            # print("states in loop", self.states)
+            # print(self.inputs)
+            # print(type(self.inputs))
+            # print(self.inputs.append(0))
+            self.inputs = self.inputs.append(u_t) #begin populating the input vector
             #Simulate the dynamics by getting the next step
-            q_t = self.dynamics.q_tp1(q_t, u_t, t) #get the next state by calling q_tp1 dynamics method
+            q_t = self.dynamics.q_tp1(q_t, u_t, t, 0.1) #get the next state by calling q_tp1 dynamics method
 
             #add the state and the input to the object parameters
             self.states.append(q_t)
-            self.inputs.append(q_t)
+            # self.inputs.append(q_t)
 
         return self.states, self.inputs, times
 
