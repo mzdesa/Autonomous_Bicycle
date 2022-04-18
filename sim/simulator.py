@@ -31,6 +31,8 @@ class Simulation:
         self.inputs = [np.zeros((6, 1))] #(control_dimn x N) vector of control inputs over time
         self.times = None
 
+        print("self.inputs:", self.inputs)
+
     def simulate(self, T = 10):
         """
         Run the simulation, populate the states and inputs variables
@@ -43,34 +45,42 @@ class Simulation:
         q_goal = np.zeros((6, 1)) #SUBJECT TO CHANGE BASED ON PATH PLANNER - here, just leave as a vector of zeroes.
     
         q_t = self.q0  #initialize x_t as q0
-        times = np.arange(0, T, self.dt) #create an array of times to go through
+        times = np.arange(0,T,self.dt) #create an array of times to go through
         self.times = times #store in class variable
 
-        # print(self.inputs)
+        
+        print("self.inputs second print",self.inputs)
         # print(type(self.inputs))
         # print("times: ", times)
 
         for t in times:
+            #print(t)
             u_t = self.controller.control_input(q_t, q_goal) #get the current input
             # print("states in loop", self.states)
-            # print(self.inputs)
+            #print("self.inputs third print",self.inputs)
             # print(type(self.inputs))
             # print(self.inputs.append(0))
-            self.inputs = self.inputs.append(u_t) #begin populating the input vector
+            self.inputs.append(u_t) #begin populating the input vector
+
+
+
             #Simulate the dynamics by getting the next step
             q_t = self.dynamics.q_tp1(q_t, u_t, t, 0.1) #get the next state by calling q_tp1 dynamics method
-
             #add the state and the input to the object parameters
             self.states.append(q_t)
             # self.inputs.append(q_t)
 
+        #print("self.inputs",self.inputs)
+        print("self.inputs.shape",np.shape(self.inputs))
         return self.states, self.inputs, times
 
-    def plot_results(self, plot_args = [True, True, True]):
+    def plot_results(self, plot_args = [True, False, True]):
         """
         Plot sequence:
         1) Plot evolution of each state variable in time
         2) Then, plot evolution of inputs in time
+
+
         3) Then, plot x and y against each other to show path in space
         Notes:
         Function assumes that the self.states, self.inputs, and self.times variables have already been populated
@@ -85,8 +95,14 @@ class Simulation:
             fig.suptitle('Evolution of Bicycle States in Time')
             xlabels = 'Time (s)'
             ylabels = ['theta', 'theta_dot', 'x', 'y', 'psi', 'psi_dot']
+            self.states = np.asarray(self.states)
+            #print("self.states.shape",np.shape(self.states))
+            #print("slice of self.states", np.asarray(self.states[510:515,:,:]))
+            #print("self.times:", self.times)
             for i in range(6):
-                axs[i].plot(self.states[i, :, self.times])
+                #axs[i].plot(self.states[i, :, self.times])
+                #print(np.shape(self.states))
+                axs[i].plot(self.times, self.states[1:,i,0])
                 axs[i].set(xlabel=xlabels, ylabel=ylabels[i]) #pull labels from the list above
             plt.show()
 
@@ -95,8 +111,12 @@ class Simulation:
             fig, axs = plt.subplots(5)
             fig.suptitle('Evolution of Bicycle Inputs in Time')
             ylabels = ['v', 'v_dot', 'sigma', 'sigma_dot', 'alpha_ddot']
+            self.inputs = np.asarray(self.inputs)
+            #print
+            #print("inputs_shape:",np.shape(self.inputs))
+
             for i in range(5):
-                axs[i].plot(self.states[i, :, self.times])
+                axs[i].plot(self.times, self.inputs[1:])
                 axs[i].set(xlabel=xlabels, ylabel=ylabels[i])
             plt.show()
 

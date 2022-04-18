@@ -4,7 +4,7 @@ from dynamics import *
 """
 File to create and run simulations
 """
-
+print("HELLO")
 #first, define the different controllers for the vehicle
 balance_controller = BalancePID(np.array([1, 1, 1]))
 path_planner_controller = PathPlannerController() #For now, just try the balancing dynamics, so use the zero planning controller
@@ -15,9 +15,11 @@ dynamics = Bicycle() #define a bicycle object
 
 #Next, define simulation object
 sim = Simulation(bicycle_controller, dynamics, np.zeros((6, 1)))
+print("sim", sim)
 
 #run the simulation
 sim.simulate()
 
+print("SIMULATION COMPLETED")
 #plot the results
 sim.plot_results()
