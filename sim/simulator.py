@@ -154,7 +154,7 @@ class Simulation:
             x1_test = [np.sin(angle) for angle in np.arange(0, 10, dt)]
             y1_test = [y for y in np.arange(0, 10, dt)]
 
-            x2_test = x1_test
+            x2_test = [x + 5 for x in x1_test]
             y2_test = [y + b  for y in np.arange(0, 10, dt)]
 
             x1 = 5*x1_test
@@ -164,20 +164,87 @@ class Simulation:
             y2 = 5*y2_test
 
             fig = plt.figure(figsize=(5, 4))
+            #maybe integrate with the map generation code from RRT over here
             ax = fig.add_subplot(autoscale_on=False, xlim=(-10, 10), ylim=(-10, 10))
             ax.set_aspect('equal')
             ax.grid()
 
-            line, = ax.plot([], [], 'o-', lw=2)
+            
+
+            line, = ax.plot([],[])
+            backwheel, = ax.plot([],[],lw = 3,color = 'r' )
+            frontwheel, = ax.plot([],[],lw = 3, color = 'r')
             trace, = ax.plot([], [], '.-', lw=1, ms=2)
             time_template = 'time = %.1fs'
             time_text = ax.text(0.05, 0.9, '', transform=ax.transAxes)
             history_x, history_y = deque(maxlen=history_len), deque(maxlen=history_len)
 
 
+
             def animate(i):
+
+
+                x1_test = [np.sin(angle) for angle in np.arange(0, 10, dt)]
+                y1_test = [y for y in np.arange(0, 10, dt)]
+
+                x2_test = [x + 1 for x in x1_test]
+                y2_test = [y + b  for y in np.arange(0, 10, dt)]
+
+                x1 = 5*x1_test
+                y1 = 5*y1_test
+
+                x2 = 5*x2_test
+                y2 = 5*y2_test
+
+
+
+
+                #NEED TO CHANGE THIS TO ACC GET FROM A STATE
                 thisx = [x1[i], x2[i]]
                 thisy = [y1[i], y2[i]]
+
+                # x1 = thisx[0]
+                # y1 = thisy[0]
+
+                # x2 = thisx[1]
+                # y2 = thisy[1]
+                
+                def get_back_wheel(length):
+                    x1 = thisx[0]
+                    y1 = thisy[0]
+
+                    x2 = thisx[1]
+                    y2 = thisy[1]
+                    #print(x1,y1,x2,y2)
+
+
+                    back_xs = [x1-((length/2)*(x2-x1)),x1+((length/2)*(x2-x1))]
+                    back_ys = [y1-((length/2)*(y2-y1)),y1+((length/2)*(y2-y1))]
+                    return back_xs,back_ys
+
+                def get_front_wheel(length,sigma):
+                    x1 = thisx[0]
+                    y1 = thisy[0]
+
+                    x2 = thisx[1]
+                    y2 = thisy[1]
+                    #print(x1,y1,x2,y2)
+
+                    theta = np.arctan(y2-y1/x2-x1)
+                    #print(y2-y1,x2-x1)
+
+                    topx = x2 + (length/2 * np.cos(theta + sigma))
+                    bottomx =  x2 - (length/2 * np.cos(theta + sigma)) 
+
+                    topy = y2 + (length/2 * np.sin(theta + sigma))
+                    bottomy =  y2 - (length/2 * np.sin(theta + sigma)) 
+
+                    front_xs = [bottomx,topx]
+                    front_ys = [bottomy,topy]
+
+                    return front_xs,front_ys
+
+
 
                 if i == 0:
                     history_x.clear()
@@ -187,9 +254,13 @@ class Simulation:
                 history_y.appendleft(thisy[0])
 
                 line.set_data(thisx, thisy)
+                bx_s , by_s = get_back_wheel(0.5)
+                backwheel.set_data(bx_s,by_s)
+                fx_s , fy_s = get_front_wheel(0.5,np.pi/4)
+                frontwheel.set_data(fx_s,fy_s)
                 trace.set_data(history_x, history_y)
                 time_text.set_text(time_template % (i*dt))
-                return line, trace, time_text
+                return line, trace, time_text,backwheel,frontwheel
 
 
             ani = animation.FuncAnimation(
