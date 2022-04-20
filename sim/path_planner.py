@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from dynamics import *
 
 
-#Path planner from homework with small changes to fit out model
+#Path planner from homework with small changes to fit our model
 
 def path_planner_bicycle_model(q, u, dt=0.01):
     """
@@ -52,10 +52,10 @@ def path_planner_bicycle_model(q, u, dt=0.01):
 
     #create variables for each vector element
     #Inputs:
-    v, v_dot, sigma, sigma_dot, alpha_ddot = u[0], u[1], u[2], u[3], u[4]
+    v, v_dot, sigma, sigma_dot = u[0], u[1], u[2], u[3]
 
     #assign variables to state vector elements
-    theta,theta_dot,x,y,psi,psi_dot = q[0], q[1], q[2], q[3], q[4], q[5]
+    theta, theta_dot, x, y = q[0], q[1], q[2], q[3]
 
     #Calculate equivalent simple pendulum length a:
     a = (I_bf/m)
@@ -64,8 +64,8 @@ def path_planner_bicycle_model(q, u, dt=0.01):
     theta_ddot = v_dot*cas.tan(sigma)/b + (v/b)*(sigma_dot)*(1/cas.cos(sigma))**2
     x_dot = v*cas.cos(theta)
     y_dot = v*cas.sin(theta)
-    psi_ddot = (1/(m*a**2))*(m*a**2*theta_dot**2*cas.sin(psi)*cas.cos(psi) + m*v*a*theta_dot*cas.cos(psi)+m*c*a*theta_ddot*cas.cos(psi)+I_f*alpha_ddot+m*a_bar*g*cas.sin(psi))
-    q_dot = vertcat(theta_dot, theta_ddot, x_dot, y_dot, psi_dot, psi_ddot)
+    #psi_ddot = (1/(m*a**2))*(m*a**2*theta_dot**2*cas.sin(psi)*cas.cos(psi) + m*v*a*theta_dot*cas.cos(psi)+m*c*a*theta_ddot*cas.cos(psi)+I_f*alpha_ddot+m*a_bar*g*cas.sin(psi))
+    q_dot = vertcat(theta_dot, theta_ddot, x_dot, y_dot)
     return q + dt*q_dot
 
 def initial_cond(q_start, q_goal, n):
@@ -90,19 +90,17 @@ def initial_cond(q_start, q_goal, n):
         u0 is an array of shape (2, n) representing the initial guess for the state
         optimization variables.
     """
-    q0 = np.zeros((6, n + 1))
-    u0 = np.zeros((5, n))
+    q0 = np.zeros((4, n + 1))
+    u0 = np.zeros((4, n))
 
     # Your code here.
     thetas = np.linspace(q_start[0],q_goal[0],n+1).reshape((1,n+1))
     theta_dots = np.linspace(q_start[1],q_goal[1],n+1).reshape((1,n+1))
     xs = np.linspace(q_start[2],q_goal[2],n+1).reshape((1,n+1))
     ys = np.linspace(q_start[3],q_goal[3],n+1).reshape((1,n+1))
-    psis = np.linspace(q_start[4],q_goal[4],n+1).reshape((1,n+1))
-    psi_dots = np.linspace(q_start[5],q_goal[5],n+1).reshape((1,n+1))
 
 
-    q0 = vertcat(thetas, theta_dots, xs, ys, psis, psi_dots)
+    q0 = vertcat(thetas, theta_dots, xs, ys)
 
     return q0, u0
 
@@ -227,11 +225,11 @@ def plan_to_pose(q_start, q_goal, q_lb, q_ub, u_lb, u_ub, obs_list, L=0.3, n=100
     """
     opti = Opti()
 
-    q = opti.variable(6, n + 1)
-    u = opti.variable(5, n)
+    q = opti.variable(4, n + 1)
+    u = opti.variable(4, n)
 
-    Q = np.diag([1, 1, 2, 2, 1, 1])
-    R = 2 * np.diag([1, 0.5, 0.1, 0.1, 0.1])
+    Q = np.diag([1, 1, 2, 2])
+    R = 2 * np.diag([1, 0.5, 0.1, 0.1])
     P = n * Q
 
     q0, u0 = initial_cond(q_start, q_goal, n)
@@ -249,7 +247,7 @@ def plan_to_pose(q_start, q_goal, q_lb, q_ub, u_lb, u_ub, obs_list, L=0.3, n=100
 
     opti.solver('ipopt')
     p_opts = {"expand": False}
-    s_opts = {"max_iter": 1e4}
+    s_opts = {"max_iter": 1e4, "acceptable_tol": 1e1} #try changing acceptable_tol if you keep getting an infeasable problem
 
 
     opti.solver('ipopt', p_opts, s_opts)
@@ -286,8 +284,8 @@ def plot(plan, inputs, times, q_lb, q_ub, obs_list):
     plt.plot(times, plan[1, :], label='theta_dot')
     plt.plot(times, plan[2, :], label='x')
     plt.plot(times, plan[3, :], label='y')
-    plt.plot(times, plan[4, :], label='psi')
-    plt.plot(times, plan[5, :], label='psi_dot')
+    #plt.plot(times, plan[4, :], label='psi')
+    #plt.plot(times, plan[5, :], label='psi_dot')
 
     plt.xlabel('Time (s)')
     plt.legend()
@@ -298,7 +296,7 @@ def plot(plan, inputs, times, q_lb, q_ub, obs_list):
     plt.plot(times[:-1], inputs[1, :], label='v_dot')
     plt.plot(times[:-1], inputs[2, :], label='sigma')
     plt.plot(times[:-1], inputs[3, :], label='sigma_dot')
-    plt.plot(times[:-1], inputs[4, :], label='alpha_ddot')
+    #plt.plot(times[:-1], inputs[4, :], label='alpha_ddot')
     
     plt.xlabel('Time (s)')
     plt.legend()
@@ -316,9 +314,9 @@ def main():
     xy_high = [10, 10]
     phi_max = 3
     u_max = 100
-    obs_list = []#[[10, 10, 1]]
-    q_start = np.array([0, 0, 0, 0, 0, 0])
-    q_goal = np.array([0, 0, 3, 0, 0, 0]) #Currently only finds a solution for a straight line in the x direction
+    obs_list = [] #[[5, 5, 1]]
+    q_start = np.array([0, 0, 0, 0])
+    q_goal = np.array([0, 0, 6, 5]) 
 
     ###### SETUP PROBLEM ######
     
