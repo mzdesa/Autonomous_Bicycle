@@ -50,7 +50,7 @@ class Bicycle(Dynamics):
         I_f: moment of inertia of the flywheel
         """
         #Define bicycle dynamics function
-        def f(q, u, t):
+        def f(q, u):
             """
             Bicycle dynamics function in form q_dot = f(q, u)
             Bicycle state vector: q = [theta, theta_dot, x, y, psi, psi_dot].T
@@ -95,7 +95,6 @@ class Bicycle(Dynamics):
             y = q[3, 0]
             psi = q[4, 0]
             psi_dot = q[5, 0]
-
             #Calculate equivalent simple pendulum length a:
             a = (I_bf/m)
 
