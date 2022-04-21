@@ -30,7 +30,7 @@ class Dynamics:
         t: current time, float
         """
         #otherwise return Euler discretized next step
-        return q_t + self.f(q_t, u_t, t)*dt
+        return q_t + self.f(q_t, u_t)*dt
         
 class Bicycle(Dynamics):
     def __init__(self, state_bounds = None, input_bounds = None, a_bar = 0.4, b = 1, c = 0.5, m = 10, I_bf = 5, I_f = 1):
@@ -49,6 +49,7 @@ class Bicycle(Dynamics):
         I_bf: inertia bicycle-flywheel system
         I_f: moment of inertia of the flywheel
         """
+        
         #Define bicycle dynamics function
         def f(q, u):
             """
@@ -110,3 +111,8 @@ class Bicycle(Dynamics):
         self.f = f
         self.state_bounds = state_bounds
         self.input_bounds = input_bounds
+
+        #For path planner
+        self.b = b
+        self.m = m
+        self.I_bf = I_bf

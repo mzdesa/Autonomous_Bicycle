@@ -8,299 +8,300 @@ from dynamics import *
 
 #Path planner from homework with small changes to fit our model
 
-def path_planner_bicycle_model(q, u, dt=0.01):
+class PathPlanner:
     """
-    Implements the discrete time dynamics of your robot.
-    i.e. this function implements F in
-
-    q_{t+1} = F(q_{t}, u_{t})
-
-    dt is the discretization timestep.
-    L is the axel-to-axel length of the car.
-
-    q = array of casadi MX.sym symbolic variables [x, y, theta, phi].
-    u = array of casadi MX.sym symbolic variables [u1, u2] (velocity and steering inputs).
-
-    Use the casadi sin, cos, tan functions.
-
-    The casadi vertcat or vcat functions may also be useful. Note that to turn a list of 
-    casadi expressions into a column vector of those expressions, you should use vertcat or
-    vcat. vertcat takes as input a variable number of arguments, and vcat takes as input a list.
-
-    Example:
-        x = MX.sym('x')
-        y = MX.sym('y')
-        z = MX.sym('z')
-
-        q = vertcat(x + y, y, z) # makes a 3x1 matrix with entries x + y, y, and z.
-        # OR
-        q = vcat([x + y, y, z]) # makes a 3x1 matrix with entries x + y, y, and z.
-    
-    x,y,theta,phi,v,omega = q[0], q[1], q[2], q[3], u[0], u[1]
-
-    q_dot = vertcat(v*cas.cos(theta), v*cas.sin(theta), v*cas.tan(phi)/L, omega, 0, 0)
-
-    return q + dt*q_dot"""
-
-    a_bar = 0.4
-    b = 1
-    c = 0.5
-    m = 10 
-    I_bf = 5 
-    I_f = 1
-    g = 9.81 #grav. constant
-
-    #create variables for each vector element
-    #Inputs:
-    v, v_dot, sigma, sigma_dot = u[0], u[1], u[2], u[3]
-
-    #assign variables to state vector elements
-    theta, theta_dot, x, y = q[0], q[1], q[2], q[3]
-
-    #Calculate equivalent simple pendulum length a:
-    a = (I_bf/m)
-
-    #Assembly remaining derivative terms
-    theta_ddot = v_dot*cas.tan(sigma)/b + (v/b)*(sigma_dot)*(1/cas.cos(sigma))**2
-    x_dot = v*cas.cos(theta)
-    y_dot = v*cas.sin(theta)
-    #psi_ddot = (1/(m*a**2))*(m*a**2*theta_dot**2*cas.sin(psi)*cas.cos(psi) + m*v*a*theta_dot*cas.cos(psi)+m*c*a*theta_ddot*cas.cos(psi)+I_f*alpha_ddot+m*a_bar*g*cas.sin(psi))
-    q_dot = vertcat(theta_dot, theta_ddot, x_dot, y_dot)
-    return q + dt*q_dot
-
-def initial_cond(q_start, q_goal, n):
+    Path Planner class - Calculates the optimal trajectory using the casadi NLP solver. 
     """
-    Construct an initial guess for a solution to "warm start" the optimization.
+    def __init__(self, dynamics, q_start, q_goal,
+                q_lb = [-100, -100, -5, -1], q_ub = [100, 100, 10, 10],
+                u_lb = None, u_ub = None, obs_list = [], n=1000, dt=0.01):
+        """
+        Initializes the planner with constraints.
+        Inputs:
+        q_start: starting state
+        q_goal: goal state
+        q_lb, q_ub: the state lower and upper bounds repspectively.
+        u_lb, u_ub: the input lower and upper bounds repspectively.
+        obs_list: the list of obstacles, each given as a tuple (x, y, r).
+        n: the number of timesteps.
+        dt: the discretization timestep."""
 
-    An easy way to initialize our optimization is to say that our robot will move 
-    in a straight line in configuration space. Of course, this isn't always possible 
-    since our dynamics are nonholonomic, but we don't necessarily need our initial 
-    condition to be feasible. We just want it to be closer to the final trajectory 
-    than any of the other simple initialization strategies (random, all zero, etc).
-
-    We'll set our initial guess for the inputs to zeros to hopefully bias our solver into
-    picking low control inputs
-
-    n is the number of timesteps.
-
-    This function will return two arrays: 
-        q0 is an array of shape (4, n+1) representing the initial guess for the state
-        optimization variables.
-
-        u0 is an array of shape (2, n) representing the initial guess for the state
-        optimization variables.
-    """
-    q0 = np.zeros((4, n + 1))
-    u0 = np.zeros((4, n))
-
-    # Your code here.
-    thetas = np.linspace(q_start[0],q_goal[0],n+1).reshape((1,n+1))
-    theta_dots = np.linspace(q_start[1],q_goal[1],n+1).reshape((1,n+1))
-    xs = np.linspace(q_start[2],q_goal[2],n+1).reshape((1,n+1))
-    ys = np.linspace(q_start[3],q_goal[3],n+1).reshape((1,n+1))
+        self.dynamics = dynamics
+        self.q_start = q_start
+        self.q_goal =q_goal
+        self.q_lb = q_lb
+        self.q_ub = q_ub
+        self.u_lb = u_lb
+        self.u_ub = u_ub
+        self.obs_list = obs_list
+        self.n = n
+        self.dt= dt
 
 
-    q0 = vertcat(thetas, theta_dots, xs, ys)
+    def path_planner_q_tp1(self, q, u):
+        """
+        Implements the discrete time dynamics of your robot.
+        i.e. this function implements F in
 
-    return q0, u0
+        q_{t+1} = F(q_{t}, u_{t})
+        Inputs:
+        dt: discretization timestep.
+        q: array of casadi MX.sym symbolic variables [theta, theta_dot, x, y]
+        u: array of casadi MX.sym symbolic variables [v, v_dot, sigma, sigma_dot]
+        """
+        g = 9.81 #grav. constant
 
-def objective_func(q, u, q_goal, Q, R, P):
-    """
-    Implements the objective function. q is an array of states and u is an array of inputs. Together,
-    these two arrays contain all the optimization variables in our problem.
+        #create variables for each vector element
+        #Inputs:
+        v, v_dot, sigma, sigma_dot = u[0], u[1], u[2], u[3]
 
-    In particular, 
+        #assign variables to state vector elements
+        theta, theta_dot, x, y = q[0], q[1], q[2], q[3]
 
-    q has shape (4, N+1), so that each column of q is an array q[:, i] = [q0, q1, q2, q3]
-    (i.e. [x, y, theta, phi]), the state at time-step i. 
+        #Calculate equivalent simple pendulum length a:
+        a = (self.dynamics.I_bf/self.dynamics.m) 
 
-    u has shape (2, N), so that each column of u is an array u[:, i] = [u1, u2], the two control inputs 
-    (velocity and steering) of the bicycle model.
+        #Assembly remaining derivative terms
+        theta_ddot = v_dot*cas.tan(sigma)/self.dynamics.b + (v/self.dynamics.b)*(sigma_dot)*(1/cas.cos(sigma))**2
+        x_dot = v*cas.cos(theta)
+        y_dot = v*cas.sin(theta)
+        q_dot = vertcat(theta_dot, theta_ddot, x_dot, y_dot)
+        return q + self.dt*q_dot
 
-    This function should create an expression of the form
+    def initial_cond(self):
+        """
+        Construct an initial guess for a solution to "warm start" the optimization.
 
-    sum_{i = 1, ..., N} ((q(i) - q_goal)^T * Q * (q(i) - q_goal) + (u(i)^T * R * u(i)))
-    + (q(N+1) - q_goal)^T * P * (q(N+1) - q_goal)
+        An easy way to initialize our optimization is to say that our robot will move 
+        in a straight line in configuration space. Of course, this isn't always possible 
+        since our dynamics are nonholonomic, but we don't necessarily need our initial 
+        condition to be feasible. We just want it to be closer to the final trajectory 
+        than any of the other simple initialization strategies (random, all zero, etc).
 
-    Note: When dealing with casadi symbolic variables, you can use @ for matrix multiplication,
-    and * for standard, numpy-style element-wise (or broadcasted) multiplication.
-    
-    """
+        We'll set our initial guess for the inputs to zeros to hopefully bias our solver into
+        picking low control inputs
 
-    n = q.shape[1] - 1
-    obj = 0
-    for i in range(n):
-        qi = q[:, i]
-        ui = u[:, i]
+        n is the number of timesteps.
 
-        # Define one term of the summation here: ((q(i) - q_goal)^T * Q * (q(i) - q_goal) + (u(i)^T * R * u(i)))
-        term = mtimes(mtimes((qi - q_goal).T,Q),(qi - q_goal)) + mtimes(mtimes(ui.T,R),ui)
-        # term = np.matmul(np.matmul(np.transpose(qi - q_goal), Q), qi - q_goal) + np.matmul(np.matmul(np.transpose(ui), R), ui)
-        obj += term
+        This function will return two arrays: 
+            q0 is an array of shape (4, n+1) representing the initial guess for the state
+            optimization variables.
 
-    q_last = q[:, n]
-    # Define the last term here: (q(N+1) - q_goal)^T * P * (q(N+1) - q_goal)
-    term_last = mtimes(mtimes((q_last - q_goal).T,P),(q_last - q_goal))
-    # term_last = np.matmul(np.matmul(np.transpose(q_last - q_goal), P), q_last - q_goal)
-    obj += term_last
-    return obj
-
-def constraints(q, u, q_lb, q_ub, u_lb, u_ub, obs_list, q_start, q_goal, dt=0.01):
-    """
-    Constructs a list where each entry is a casadi.MX symbolic expression representing
-    a constraint of our optimization problem.
-
-    q has shape (4, N+1), so that each column of q is an array q[:, i] = [q0, q1, q2, q3]
-    (i.e. [x, y, theta, phi]), the state at time-step i. 
-
-    u has shape (2, N), so that each column of u is an array u[:, i] = [u1, u2], the two control inputs 
-    (velocity and steering) of the bicycle model.
-
-    q_lb is a size (4,) array [x_lb, y_lb, theta_lb, phi_lb] containing lower bounds for each state variable.
-
-    q_ub is a size (4,) array [x_ub, y_ub, theta_ub, phi_ub] containing upper bounds for each state variable.
-
-    u_lb is a size (2,) array [u1_lb, u2_lb] containing lower bounds for each input.
-
-    u_ub is a size (2,) array [u1_ub, u2_ub] containing upper bounds for each input.
-
-    obs_list is a list of obstacles, where each obstacle is represented by  3-tuple (x, y, r)
-            representing the (x, y) center of the obstacle and its radius r. All obstacles are modelled as
-            circles.
-
-    q_start is a size (4,) array representing the starting state of the plan.
-
-    q_goal is a size (4,) array representing the goal state of the plan.
-
-    L is the axel-to-axel length of the car.
-
-    dt is the discretization timestep.
-
-    """
-    constraints = []
-
-    # State constraints
-    #constraints.extend([q_lb[0] <= q[0, :], q[0, :] <= q_ub[0]])
-    #constraints.extend([q_lb[1] <= q[1, :], q[1, :] <= q_ub[1]])
-    #constraints.extend([q_lb[2] <= q[2, :], q[2, :] <= q_ub[2]]) 
-    #constraints.extend([q_lb[3] <= q[3, :], q[3, :] <= q_ub[3]]) 
-    
-    # Input constraints
-    #constraints.extend([u_lb[0] <= u[0, :], u[0, :] <= u_ub[0]])
-    #constraints.extend([u_lb[1] <= u[1, :], u[1, :] <= u_ub[1]])
-
-    # Dynamics constraints
-    for t in range(q.shape[1] - 1):
-        q_t   = q[:, t]
-        q_tp1 = q[:, t + 1]
-        u_t   = u[:, t]
-        #print("q_t", q_t[0], "u_t", u_t)
-        constraints.append(q_tp1 == path_planner_bicycle_model(q_t, u_t)) # You should use the bicycle_robot_model function here somehow.
-
-    # Obstacle constraints
-    for obj in obs_list:
-        obj_x, obj_y, obj_r = obj
-        for t in range(q.shape[1]):
-            constraints.append((q[0,t]-obj_x)**2 + (q[1,t]-obj_y)**2 >= obj_r**2) # Define the obstacle constraints.
-
-    # Initial and final state constraints
-    constraints.append(q_start == q[:,0]) # Constraint on start state.
-    constraints.append(q_goal == q[:,q.shape[1]-1]) # Constraint on final state.
-
-    return constraints
-
-def plan_to_pose(q_start, q_goal, q_lb, q_ub, u_lb, u_ub, obs_list, L=0.3, n=1000, dt=0.01):
-    """
-    Plans a path from q_start to q_goal.
-
-    q_lb, q_ub are the state lower and upper bounds repspectively.
-    u_lb, u_ub are the input lower and upper bounds repspectively.
-    obs_list is the list of obstacles, each given as a tuple (x, y, r).
-    L is the length of the car.
-    n is the number of timesteps.
-    dt is the discretization timestep.
-
-    Returns a plan (shape (4, n+1)) of waypoints and a sequence of inputs
-    (shape (2, n)) of inputs at each timestep.
-    """
-    opti = Opti()
-
-    q = opti.variable(4, n + 1)
-    u = opti.variable(4, n)
-
-    Q = np.diag([1, 1, 2, 2])
-    R = 2 * np.diag([1, 0.5, 0.1, 0.1])
-    P = n * Q
-
-    q0, u0 = initial_cond(q_start, q_goal, n)
-
-    obj = objective_func(q, u, q_goal, Q, R, P)
-
-    opti.minimize(obj)
-
-    opti.subject_to(constraints(q, u, q_lb, q_ub, u_lb, u_ub, obs_list, q_start, q_goal, dt=dt))
-    #print("q", q, "q0", q0)
-    opti.set_initial(q, q0)
-    opti.set_initial(u, u0)
-
-    ###### CONSTRUCT SOLVER AND SOLVE ######
-
-    opti.solver('ipopt')
-    p_opts = {"expand": False}
-    s_opts = {"max_iter": 1e4, "acceptable_tol": 1e1} #try changing acceptable_tol if you keep getting an infeasable problem
+            u0 is an array of shape (2, n) representing the initial guess for the state
+            optimization variables.
+        """
+        n = self.n
+        q0 = np.zeros((4, n + 1))
+        u0 = np.zeros((4, n))
 
 
-    opti.solver('ipopt', p_opts, s_opts)
-    sol = opti.solve()
+        thetas = np.linspace(self.q_start[0],self.q_goal[0],n+1).reshape((1,n+1))
+        theta_dots = np.linspace(self.q_start[1],self.q_goal[1],n+1).reshape((1,n+1))
+        xs = np.linspace(self.q_start[2],self.q_goal[2],n+1).reshape((1,n+1))
+        ys = np.linspace(self.q_start[3],self.q_goal[3],n+1).reshape((1,n+1))
 
-    plan = sol.value(q)
-    inputs = sol.value(u)
-    return plan, inputs
 
-def plot(plan, inputs, times, q_lb, q_ub, obs_list):
+        q0 = vertcat(thetas, theta_dots, xs, ys)
 
-    # Trajectory plot
-    ax = plt.subplot(1, 1, 1)
-    ax.set_aspect(1)
-    ax.set_xlim(q_lb[0], q_ub[0])
-    ax.set_ylim(q_lb[1], q_ub[1])
+        return q0, u0
 
-    for obs in obs_list:
-        xc, yc, r = obs
-        circle = plt.Circle((xc, yc), r, color='black')
-        ax.add_artist(circle)
+    def objective_func(self, q, u, q_goal, Q, R, P):
+        """
+        Implements the objective function. q is an array of states and u is an array of inputs. Together,
+        these two arrays contain all the optimization variables in our problem.
 
-    plan_x = plan[2, :]
-    plan_y = plan[3, :]
-    ax.plot(plan_x, plan_y, color='green')
+        In particular, 
 
-    plt.xlabel("X (m)")
-    plt.ylabel("Y (m)")
+        q has shape (4, N+1), so that each column of q is an array q[:, i] = [q0, q1, q2, q3]
 
-    plt.show()
+        u has shape (4, N), so that each column of u is an array u[:, i] = [u1, u2, u3, u4]
 
-    # States plot
-    plt.plot(times, plan[0, :], label='theta')
-    plt.plot(times, plan[1, :], label='theta_dot')
-    plt.plot(times, plan[2, :], label='x')
-    plt.plot(times, plan[3, :], label='y')
-    #plt.plot(times, plan[4, :], label='psi')
-    #plt.plot(times, plan[5, :], label='psi_dot')
+        This function should create an expression of the form
 
-    plt.xlabel('Time (s)')
-    plt.legend()
-    plt.show()
+        sum_{i = 1, ..., N} ((q(i) - q_goal)^T * Q * (q(i) - q_goal) + (u(i)^T * R * u(i)))
+        + (q(N+1) - q_goal)^T * P * (q(N+1) - q_goal)
 
-    # Inputs plot
-    plt.plot(times[:-1], inputs[0, :], label='v')
-    plt.plot(times[:-1], inputs[1, :], label='v_dot')
-    plt.plot(times[:-1], inputs[2, :], label='sigma')
-    plt.plot(times[:-1], inputs[3, :], label='sigma_dot')
-    #plt.plot(times[:-1], inputs[4, :], label='alpha_ddot')
-    
-    plt.xlabel('Time (s)')
-    plt.legend()
-    plt.show()
+        Note: When dealing with casadi symbolic variables, you can use @ for matrix multiplication,
+        and * for standard, numpy-style element-wise (or broadcasted) multiplication.
+        """
+
+        n = q.shape[1] - 1
+        obj = 0
+        for i in range(n):
+            qi = q[:, i]
+            ui = u[:, i]
+
+            # Define one term of the summation here: ((q(i) - q_goal)^T * Q * (q(i) - q_goal) + (u(i)^T * R * u(i)))
+            term = mtimes(mtimes((qi - q_goal).T,Q),(qi - q_goal)) + mtimes(mtimes(ui.T,R),ui)
+            obj += term
+
+        q_last = q[:, n]
+        # Define the last term here: (q(N+1) - q_goal)^T * P * (q(N+1) - q_goal)
+        term_last = mtimes(mtimes((q_last - q_goal).T,P),(q_last - q_goal))
+        obj += term_last
+        return obj
+
+    def constraints(self, q, u):
+        """
+        Constructs a list where each entry is a casadi.MX symbolic expression representing
+        a constraint of our optimization problem.
+
+        q has shape (4, N+1), so that each column of q is an array q[:, i] = [q0, q1, q2, q3]
+        (i.e. [x, y, theta, phi]), the state at time-step i. 
+
+        u has shape (2, N), so that each column of u is an array u[:, i] = [u1, u2], the two control inputs 
+        (velocity and steering) of the bicycle model.
+
+        q_lb is a size (4,) array [x_lb, y_lb, theta_lb, phi_lb] containing lower bounds for each state variable.
+
+        q_ub is a size (4,) array [x_ub, y_ub, theta_ub, phi_ub] containing upper bounds for each state variable.
+
+        u_lb is a size (2,) array [u1_lb, u2_lb] containing lower bounds for each input.
+
+        u_ub is a size (2,) array [u1_ub, u2_ub] containing upper bounds for each input.
+
+        obs_list is a list of obstacles, where each obstacle is represented by  3-tuple (x, y, r)
+                representing the (x, y) center of the obstacle and its radius r. All obstacles are modelled as
+                circles.
+
+        q_start is a size (4,) array representing the starting state of the plan.
+
+        q_goal is a size (4,) array representing the goal state of the plan.
+
+        L is the axel-to-axel length of the car.
+
+        dt is the discretization timestep.
+
+        """
+        constraints = []
+
+        # # State constraints
+        #constraints.extend([self.q_lb[0] <= q[0, :], q[0, :] <= self.q_ub[0]])
+        # constraints.extend([self.q_lb[1] <= q[1, :], q[1, :] <= self.q_ub[1]])
+        # constraints.extend([self.q_lb[2] <= q[2, :], q[2, :] <= self.q_ub[2]]) 
+        # constraints.extend([self.q_lb[3] <= q[3, :], q[3, :] <= self.q_ub[3]]) 
+        
+        # # Input constraints
+        # constraints.extend([self.u_lb[0] <= u[0, :], u[0, :] <= self.u_ub[0]])
+        # constraints.extend([self.u_lb[1] <= u[1, :], u[1, :] <= self.u_ub[1]])
+        # constraints.extend([self.u_lb[2] <= u[2, :], u[2, :] <= self.u_ub[2]])
+        # constraints.extend([self.u_lb[3] <= u[3, :], u[3, :] <= self.u_ub[3]])
+
+        # Dynamics constraints
+        for t in range(q.shape[1] - 1):
+            q_t   = q[:, t]
+            q_tp1 = q[:, t + 1]
+            u_t   = u[:, t]
+            constraints.append(q_tp1 == self.path_planner_q_tp1(q_t, u_t)) # You should use the bicycle_robot_model function here somehow.
+
+        # Obstacle constraints
+        for obj in self.obs_list:
+            obj_x, obj_y, obj_r = obj
+            for t in range(q.shape[1]):
+                constraints.append((q[0,t]-obj_x)**2 + (q[1,t]-obj_y)**2 >= obj_r**2) # Define the obstacle constraints.
+
+        # Initial and final state constraints
+        constraints.append(self.q_start == q[:,0]) # Constraint on start state.
+        constraints.append(self.q_goal == q[:,q.shape[1]-1]) # Constraint on final state.
+
+        return constraints
+
+    def plan_to_pose(self):
+        """
+        Plans a path from q_start to q_goal.
+
+        q_lb, q_ub are the state lower and upper bounds repspectively.
+        u_lb, u_ub are the input lower and upper bounds repspectively.
+        obs_list is the list of obstacles, each given as a tuple (x, y, r).
+        L is the length of the car.
+        n is the number of timesteps.
+        dt is the discretization timestep.
+
+        Returns a plan (shape (4, n+1)) of waypoints and a sequence of inputs
+        (shape (2, n)) of inputs at each timestep.
+        """
+        n = self.n
+        opti = Opti()
+
+        q = opti.variable(4, n + 1)
+        u = opti.variable(4, n)
+
+        Q = np.diag([1, 1, 2, 2])
+        R = 2 * np.diag([1, 0.5, 0.1, 0.1])
+        P = n * Q
+
+        q0, u0 = self.initial_cond()
+
+        obj = self.objective_func(q, u, self.q_goal, Q, R, P)
+
+        opti.minimize(obj)
+
+        opti.subject_to(self.constraints(q, u))
+        #print("q", q, "q0", q0)
+        opti.set_initial(q, q0)
+        opti.set_initial(u, u0)
+
+        ###### CONSTRUCT SOLVER AND SOLVE ######
+
+        opti.solver('ipopt')
+        p_opts = {"expand": False}
+        s_opts = {"max_iter": 1e4, "acceptable_tol": 1e10} #, "constr_viol_tol": 1e10, "tol": 1e10, 
+                    #"acceptable_obj_change_tol": 1e20, "compl_inf_tol": 1e-1,  "compl_inf_tol": 1e-1} #try changing acceptable_tol if you keep getting an infeasable problem
+
+
+        opti.solver('ipopt', p_opts, s_opts)
+        sol = opti.solve()
+
+        plan = sol.value(q)
+        inputs = sol.value(u)
+        return plan, inputs
+
+    def plot(self, plan, inputs):
+
+        times = np.arange(0.0, (self.n + 1) * self.dt, self.dt)
+
+        # Trajectory plot
+        ax = plt.subplot(1, 1, 1)
+        ax.set_aspect(1)
+        ax.set_xlim(self.q_lb[2], self.q_ub[2])
+        ax.set_ylim(self.q_lb[3], self.q_ub[3])
+
+        for obs in self.obs_list:
+            xc, yc, r = obs
+            circle = plt.Circle((xc, yc), r, color='black')
+            ax.add_artist(circle)
+
+        plan_x = plan[2, :]
+        plan_y = plan[3, :]
+        ax.plot(plan_x, plan_y, color='green')
+
+        plt.xlabel("X (m)")
+        plt.ylabel("Y (m)")
+
+        plt.show()
+
+        # States plot
+        plt.plot(times, plan[0, :], label='theta')
+        plt.plot(times, plan[1, :], label='theta_dot')
+        plt.plot(times, plan[2, :], label='x')
+        plt.plot(times, plan[3, :], label='y')
+        #plt.plot(times, plan[4, :], label='psi')
+        #plt.plot(times, plan[5, :], label='psi_dot')
+
+        plt.xlabel('Time (s)')
+        plt.legend()
+        plt.show()
+
+        # Inputs plot
+        plt.plot(times[:-1], inputs[0, :], label='v')
+        plt.plot(times[:-1], inputs[1, :], label='v_dot')
+        plt.plot(times[:-1], inputs[2, :], label='sigma')
+        plt.plot(times[:-1], inputs[3, :], label='sigma_dot')
+        #plt.plot(times[:-1], inputs[4, :], label='alpha_ddot')
+        
+        plt.xlabel('Time (s)')
+        plt.legend()
+        plt.show()
 
 
 def main():
@@ -312,7 +313,7 @@ def main():
 
     xy_low = [-5, -1]
     xy_high = [10, 10]
-    phi_max = 3
+    theta_max = 300
     u_max = 100
     obs_list = [] #[[5, 5, 1]]
     q_start = np.array([0, 0, 0, 0])
@@ -320,21 +321,22 @@ def main():
 
     ###### SETUP PROBLEM ######
     
-    q_lb = xy_low + [-1000, -phi_max]
-    q_ub = xy_high + [1000, phi_max]
+    q_lb = [-theta_max, -1000] + xy_low
+    q_ub = [theta_max, 1000] + xy_high 
 
-    u_lb = [-u_max, -u_max, -u_max, -u_max, -u_max]
-    u_ub = [u_max, u_max, u_max, u_max, u_max]
+    u_lb = [-u_max, -u_max, -u_max, -u_max]
+    u_ub = [u_max, u_max, u_max, u_max]
 
     ###### CONSTRUCT SOLVER AND SOLVE ######
+    dynamics = Bicycle()
 
-    plan, inputs = plan_to_pose(q_start, q_goal, q_lb, q_ub, u_lb, u_ub, obs_list, n=n, dt=dt)
+    path_planner = PathPlanner(dynamics, q_start, q_goal, q_lb, q_ub, u_lb, u_ub, obs_list, n=n, dt=dt)
+
+    plan, inputs = path_planner.plan_to_pose()
 
     ###### PLOT ######
-
-    times = np.arange(0.0, (n + 1) * dt, dt)
     print("Final Position:", plan[:6, -1])
-    plot(plan, inputs, times, q_lb, q_ub, obs_list)
+    path_planner.plot(plan, inputs)
 
 if __name__ == '__main__':
     main()
