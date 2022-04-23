@@ -225,6 +225,7 @@ class PathPlanner:
 
         q = opti.variable(4, n + 1)
         #need to change the opti variables
+        #u[0] u[3]
         u = opti.variable(4, n)
 
         Q = np.diag([1, 1, 2, 2])
