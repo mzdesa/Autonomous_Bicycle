@@ -112,7 +112,11 @@ class Bicycle(Dynamics):
         self.state_bounds = state_bounds
         self.input_bounds = input_bounds
 
+
+        #revisit this
         #For path planner
         self.b = b
         self.m = m
         self.I_bf = I_bf
+
+        

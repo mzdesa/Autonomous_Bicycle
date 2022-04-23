@@ -1,4 +1,5 @@
 #python dependencies
+from re import I
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.integrate as integrate
@@ -298,11 +299,11 @@ class Simulation:
 
 
 
-    def animate_plan(self, plan, plot_args = True):
+    def animate_plan(self, plan, inputs):
         """
-        Runs two animations of the bicycle
-        1) Lateral dynamics from above in XY frame
-        2) Balancing dynamics in frame traveling with bicycle
+        Runs ONE animation of the bicycle
+        1) Lateral dynamicS from above in XY frame
+        
         """
         t_stop = 10  # how many seconds to simulate
         history_len = 200  # how many trajectory points to display
@@ -310,83 +311,91 @@ class Simulation:
         # create a time array from 0..t_stop sampled at dt second steps
         dt = self.dt
 
-        if plot_args:
-            #Lateral dynamics
-            fig = plt.figure(figsize=(5, 4))
-            #maybe integrate with the map generation code from RRT over here
-            ax = fig.add_subplot(autoscale_on=False, xlim=(-10, 10), ylim=(-10, 10))
-            ax.set_aspect('equal')
-            ax.grid()
+        
+        #Lateral dynamics
+        fig = plt.figure(figsize=(5, 4))
+        #maybe integrate with the map generation code from RRT over here
+        ax = fig.add_subplot(autoscale_on=False, xlim=(-10, 10), ylim=(-10, 10))
+        ax.set_aspect('equal')
+        ax.grid()
 
-            line, = ax.plot([],[])
-            backwheel, = ax.plot([],[],lw = 3,color = 'r' )
-            frontwheel, = ax.plot([],[],lw = 3, color = 'r')
-            trace, = ax.plot([], [], '.-', lw=1, ms=2)
-            time_template = 'time = %.1fs'
-            time_text = ax.text(0.05, 0.9, '', transform=ax.transAxes)
-            history_x, history_y = deque(maxlen=history_len), deque(maxlen=history_len)
-
-
-
-            def animate(i):
-                thisx = [plan[2, i], plan[2, i] + [1]]
-                thisy = [plan[3, i], plan[3, i] + [2]]
-
-
-                
-                def get_back_wheel(length):
-                    x1 = thisx[0]
-                    y1 = thisy[0]
-
-                    x2 = thisx[1]
-                    y2 = thisy[1]
-
-                    back_xs = [x1-((length/2)*(x2-x1)),x1+((length/2)*(x2-x1))]
-                    back_ys = [y1-((length/2)*(y2-y1)),y1+((length/2)*(y2-y1))]
-                    return back_xs,back_ys
-
-                def get_front_wheel(length,sigma):
-                    x1 = thisx[0]
-                    y1 = thisy[0]
-
-                    x2 = thisx[1]
-                    y2 = thisy[1]
-
-                    theta = np.arctan(y2-y1/x2-x1)
-
-                    topx = x2 + (length/2 * np.cos(theta + sigma))
-                    bottomx =  x2 - (length/2 * np.cos(theta + sigma)) 
-
-                    topy = y2 + (length/2 * np.sin(theta + sigma))
-                    bottomy =  y2 - (length/2 * np.sin(theta + sigma)) 
-
-                    front_xs = [bottomx,topx]
-                    front_ys = [bottomy,topy]
-
-                    return front_xs,front_ys
+        line, = ax.plot([],[])
+        backwheel, = ax.plot([],[],lw = 3,color = 'r' )
+        frontwheel, = ax.plot([],[],lw = 3, color = 'r')
+        trace, = ax.plot([], [], '.-', lw=1, ms=2)
+        time_template = 'time = %.1fs'
+        time_text = ax.text(0.05, 0.9, '', transform=ax.transAxes)
+        history_x, history_y = deque(maxlen=history_len), deque(maxlen=history_len)
 
 
 
-                if i == 0:
-                    history_x.clear()
-                    history_y.clear()
+        def animate(i):
 
-                history_x.appendleft(thisx[0])
-                history_y.appendleft(thisy[0])
-
-                line.set_data(thisx, thisy)
-                bx_s , by_s = get_back_wheel(0.5)
-                backwheel.set_data(bx_s,by_s)
-                fx_s , fy_s = get_front_wheel(0.5,np.pi/4)
-                frontwheel.set_data(fx_s,fy_s)
-                trace.set_data(history_x, history_y)
-                time_text.set_text(time_template % (i*dt))
-                return line, trace, time_text,backwheel,frontwheel
+            #Plots the bicylce fram
+            #MAKE THIS INTO A FUNC OF THETA
+            theta = plan[0,i]
+            length = self.dynamics.b
+            sigma = inputs[2,i]
+            thisx = [plan[2, i], plan[2, i] + length*np.cos(theta)]
+            thisy = [plan[3, i], plan[3, i] + length*np.sin(theta)]
 
 
-            ani = animation.FuncAnimation(
-                fig, animate, len(self.times), interval=dt*1000, blit=True)
-            plt.show()
+            
+            def get_back_wheel(length):
+                x1 = thisx[0]
+                y1 = thisy[0]
+
+                x2 = thisx[1]
+                y2 = thisy[1]
+
+                back_xs = [x1-((length/2)*(x2-x1)),x1+((length/2)*(x2-x1))]
+                back_ys = [y1-((length/2)*(y2-y1)),y1+((length/2)*(y2-y1))]
+                return back_xs,back_ys
+
+            def get_front_wheel(length,sigma):
+                x1 = thisx[0]
+                y1 = thisy[0]
+
+                x2 = thisx[1]
+                y2 = thisy[1]
+
+                theta = np.arctan(y2-y1/x2-x1)
+
+                topx = x2 + (length/2 * np.cos(theta + sigma))
+                bottomx =  x2 - (length/2 * np.cos(theta + sigma)) 
+
+                topy = y2 + (length/2 * np.sin(theta + sigma))
+                bottomy =  y2 - (length/2 * np.sin(theta + sigma)) 
+
+                front_xs = [bottomx,topx]
+                front_ys = [bottomy,topy]
+
+                return front_xs,front_ys
+
+
+
+            if i == 0:
+                history_x.clear()
+                history_y.clear()
+
+            history_x.appendleft(thisx[0])
+            history_y.appendleft(thisy[0])
+
+            line.set_data(thisx, thisy)
+            bx_s , by_s = get_back_wheel(0.5)
+            backwheel.set_data(bx_s,by_s)
+            #TAKE ANGLE FROM PLAN 
+            print("sigma:",sigma)
+            fx_s , fy_s = get_front_wheel(0.5,sigma)
+            frontwheel.set_data(fx_s,fy_s)
+            trace.set_data(history_x, history_y)
+            time_text.set_text(time_template % (i*dt))
+            return line, trace, time_text,backwheel,frontwheel
+
+
+        ani = animation.FuncAnimation(
+            fig, animate, len(self.times), interval=dt*1000, blit=True)
+        plt.show()
 
 
 
