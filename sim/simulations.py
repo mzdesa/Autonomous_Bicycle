@@ -20,7 +20,7 @@ q_goal = np.array([0, 0, 6, 5])
 path_planner = PathPlanner(dynamics, q_start, q_goal)
 plan, inputs = path_planner.plan_to_pose()
 
-path_planner.plot(plan, inputs)
+#path_planner.plot(plan, inputs)
 
 #Next, define simulation object
 sim = Simulation(bicycle_controller, dynamics, np.array([[np.pi/4], [np.pi/4], [0.5], [1], [np.pi/16], [0]]))
@@ -31,7 +31,7 @@ sim.simulate()
 print("SIMULATION COMPLETED")
 
 #animate path_planner plan
-sim.animate_plan(plan,inputs)
+sim.animate_plan_3D(plan,inputs)
 
 #plot the results
 

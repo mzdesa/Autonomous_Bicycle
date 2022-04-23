@@ -14,7 +14,7 @@ class PathPlanner:
     """
     def __init__(self, dynamics, q_start, q_goal,
                 q_lb = [-100, -100, -5, -1], q_ub = [100, 100, 10, 10],
-                u_lb = None, u_ub = None, obs_list = [], n=1000, dt=0.01):
+                u_lb = [-10, -10], u_ub = [10, 10], obs_list = [], n=1000, dt=0.01):
         """
         Initializes the planner with constraints.
         Inputs:
@@ -53,19 +53,16 @@ class PathPlanner:
 
         #create variables for each vector element
         #Inputs:
-        v, v_dot, sigma, sigma_dot = u[0], u[1], u[2], u[3]
+        v, sigma_dot= u[0], u[1]
 
         #assign variables to state vector elements
-        theta, theta_dot, x, y = q[0], q[1], q[2], q[3]
-
-        #Calculate equivalent simple pendulum length a:
-        a = (self.dynamics.I_bf/self.dynamics.m) 
+        theta, sigma, x, y = q[0], q[1], q[2], q[3]
 
         #Assembly remaining derivative terms
-        theta_ddot = v_dot*cas.tan(sigma)/self.dynamics.b + (v/self.dynamics.b)*(sigma_dot)*(1/cas.cos(sigma))**2
+        theta_dot = v*cas.tan(sigma)/self.dynamics.b
         x_dot = v*cas.cos(theta)
         y_dot = v*cas.sin(theta)
-        q_dot = vertcat(theta_dot, theta_ddot, x_dot, y_dot)
+        q_dot = vertcat(theta_dot, sigma_dot, x_dot, y_dot)
         return q + self.dt*q_dot
 
     def initial_cond(self):
@@ -92,16 +89,16 @@ class PathPlanner:
         """
         n = self.n
         q0 = np.zeros((4, n + 1))
-        u0 = np.zeros((4, n))
+        u0 = np.zeros((2, n))
 
 
         thetas = np.linspace(self.q_start[0],self.q_goal[0],n+1).reshape((1,n+1))
-        theta_dots = np.linspace(self.q_start[1],self.q_goal[1],n+1).reshape((1,n+1))
-        xs = np.linspace(self.q_start[2],self.q_goal[2],n+1).reshape((1,n+1))
-        ys = np.linspace(self.q_start[3],self.q_goal[3],n+1).reshape((1,n+1))
+        sigma = np.linspace(self.q_start[0],self.q_goal[0],n+1).reshape((1,n+1))
+        xs = np.linspace(self.q_start[1],self.q_goal[1],n+1).reshape((1,n+1))
+        ys = np.linspace(self.q_start[2],self.q_goal[2],n+1).reshape((1,n+1))
 
 
-        q0 = vertcat(thetas, theta_dots, xs, ys)
+        q0 = vertcat(thetas, sigma, xs, ys)
 
         return q0, u0
 
@@ -176,16 +173,14 @@ class PathPlanner:
         constraints = []
 
         # # State constraints
-        #constraints.extend([self.q_lb[0] <= q[0, :], q[0, :] <= self.q_ub[0]])
-        # constraints.extend([self.q_lb[1] <= q[1, :], q[1, :] <= self.q_ub[1]])
-        # constraints.extend([self.q_lb[2] <= q[2, :], q[2, :] <= self.q_ub[2]]) 
-        # constraints.extend([self.q_lb[3] <= q[3, :], q[3, :] <= self.q_ub[3]]) 
+        constraints.extend([self.q_lb[0] <= q[0, :], q[0, :] <= self.q_ub[0]])
+        constraints.extend([self.q_lb[1] <= q[1, :], q[1, :] <= self.q_ub[1]])
+        constraints.extend([self.q_lb[2] <= q[2, :], q[2, :] <= self.q_ub[2]]) 
+
         
         # # Input constraints
-        # constraints.extend([self.u_lb[0] <= u[0, :], u[0, :] <= self.u_ub[0]])
-        # constraints.extend([self.u_lb[1] <= u[1, :], u[1, :] <= self.u_ub[1]])
-        # constraints.extend([self.u_lb[2] <= u[2, :], u[2, :] <= self.u_ub[2]])
-        # constraints.extend([self.u_lb[3] <= u[3, :], u[3, :] <= self.u_ub[3]])
+        constraints.extend([self.u_lb[0] <= u[0, :], u[0, :] <= self.u_ub[0]])
+        constraints.extend([self.u_lb[1] <= u[1, :], u[1, :] <= self.u_ub[1]])
 
         # Dynamics constraints
         for t in range(q.shape[1] - 1):
@@ -226,10 +221,10 @@ class PathPlanner:
         q = opti.variable(4, n + 1)
         #need to change the opti variables
         #u[0] u[3]
-        u = opti.variable(4, n)
+        u = opti.variable(2, n)
 
-        Q = np.diag([1, 1, 2, 2])
-        R = 2 * np.diag([1, 0.5, 0.1, 0.1])
+        Q = np.diag([1, 1, 1, 1])
+        R = 2 * np.diag([1, 1])
         P = n * Q
 
         q0, u0 = self.initial_cond()
@@ -284,7 +279,7 @@ class PathPlanner:
 
         # States plot
         plt.plot(times, plan[0, :], label='theta')
-        plt.plot(times, plan[1, :], label='theta_dot')
+        plt.plot(times, plan[1, :], label='sigma')
         plt.plot(times, plan[2, :], label='x')
         plt.plot(times, plan[3, :], label='y')
         #plt.plot(times, plan[4, :], label='psi')
@@ -296,9 +291,8 @@ class PathPlanner:
 
         # Inputs plot
         plt.plot(times[:-1], inputs[0, :], label='v')
-        plt.plot(times[:-1], inputs[1, :], label='v_dot')
-        plt.plot(times[:-1], inputs[2, :], label='sigma')
-        plt.plot(times[:-1], inputs[3, :], label='sigma_dot')
+        plt.plot(times[:-1], inputs[1, :], label='sigma_dot')
+
         #plt.plot(times[:-1], inputs[4, :], label='alpha_ddot')
         
         plt.xlabel('Time (s)')
@@ -315,21 +309,21 @@ def main():
 
     xy_low = [-5, -1]
     xy_high = [10, 10]
-    theta_max = 300
-    u_max = 100
+    theta_max = 1
+    u_max = 10
     obs_list = [] #[[5, 5, 1]]
     q_start = np.array([0, 0, 0, 0])
     q_goal = np.array([0, 0, 6, 5]) 
 
     ###### SETUP PROBLEM ######
     
-    q_lb = [-theta_max, -1000] + xy_low
-    q_ub = [theta_max, 1000] + xy_high 
+    q_lb = [-theta_max, - theta_max] + xy_low
+    q_ub = [theta_max, theta_max] + xy_high 
 
-    u_lb = [-u_max, -u_max, -u_max, -u_max]
-    u_ub = [u_max, u_max, u_max, u_max]
+    u_lb = [-u_max, -u_max, -u_max]
+    u_ub = [u_max, u_max, -u_max]
 
-    ###### CONSTRUCT SOLVER AND SOLVE ######
+    ###### CONSTRUCT SOLVER AND SOLVE ######    
     dynamics = Bicycle()
 
     path_planner = PathPlanner(dynamics, q_start, q_goal, q_lb, q_ub, u_lb, u_ub, obs_list, n=n, dt=dt)
