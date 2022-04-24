@@ -31,6 +31,7 @@ sim.simulate()
 print("SIMULATION COMPLETED")
 
 #animate path_planner plan
+#sim.animate_plan(plan,inputs)
 sim.animate_plan_3D(plan,inputs)
 
 #plot the results

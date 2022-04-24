@@ -416,17 +416,7 @@ class Simulation:
         
         """
 
-
-
-
-
-
-
-
-
-
-
-
+        #Functions for tranformation of circle objects
         
         def rotation_matrix(d):
             """
@@ -484,9 +474,6 @@ class Simulation:
             pathpatch._segment3d = np.array([np.dot(M, (x, y, 0)) + (0, 0, z) for x, y in verts])
 
 
-
-
-
         def pathpatch_translate(pathpatch, delta):
             """
             Translates the 3D pathpatch by the amount delta.
@@ -494,41 +481,24 @@ class Simulation:
             pathpatch._segment3d += delta
 
 
-
-
-
-
-
-
-
-        t_stop = 10  # how many seconds to simulate
         history_len = 200  # how many trajectory points to display
         self.states = np.asarray(self.states)
-        # create a time array from 0..t_stop sampled at dt second steps
         dt = self.dt
 
         
-        #Lateral dynamics
         fig = plt.figure()
         ax = fig.add_subplot(projection='3d')
-        #maybe integrate with the map generation code from RRT over here
-        #ax = fig.add_subplot(autoscale_on=False, xlim=(-10, 10), ylim=(-10, 10))
-        #ax.set_aspect('equal')
-        #ax.grid()
 
-        line, = ax.plot([],[],[])
-        backwheel, = ax.plot([],[],[],lw = 3,color = 'r' )
-        frontwheel, = ax.plot([],[],[],lw = 3, color = 'r')
-        trace, = ax.plot([], [], [],'.-', lw=1, ms=2)
+        line, = ax.plot([],[],[], color="brown")
+        line2, = ax.plot([],[],[], color="brown")
+        line3, = ax.plot([],[],[], color="brown")
+        trace, = ax.plot([], [], [],'.-', lw=1, ms=2, color = 'orange')
         time_template = 'time = %.1fs'
-        #time_text = ax.text(0.05, 0.9, '', transform=ax.transAxes)
+        time_text = ax.text(0.05, 0.9, 5, '', transform=ax.transAxes)
         history_x, history_y = deque(maxlen=history_len), deque(maxlen=history_len)
 
         def animate(i):
-
-            #Plots the bicylce fram
-            #MAKE THIS INTO A FUNC OF THETA
-            [p.remove() for p in reversed(ax.patches)]
+            [p.remove() for p in ax.patches]
             theta = plan[0,i]
             length = self.dynamics.b
             sigma = plan[1,i]
@@ -537,34 +507,11 @@ class Simulation:
 
 
             
-            def get_back_wheel(length):
-                x1 = thisx[0]
-                y1 = thisy[0]
+            def get_back_wheel():
+                return thisx[0], thisy[0]
 
-                x2 = thisx[1]
-                y2 = thisy[1]
-
-                back_xs = [x1-((length/2)*(x2-x1)),x1+((length/2)*(x2-x1))]
-                back_ys = [y1-((length/2)*(y2-y1)),y1+((length/2)*(y2-y1))]
-                return back_xs,back_ys
-
-            def get_front_wheel(length, sigma, theta):
-                x2 = thisx[1]
-                y2 = thisy[1]
-
-                topx = x2 + (length/2 * np.cos(sigma+ theta))
-                bottomx =  x2 - (length/2 * np.cos(sigma+ theta)) 
-
-                topy = y2 + (length/2 * np.sin(sigma+ theta))
-                bottomy =  y2 - (length/2 * np.sin(sigma+ theta)) 
-
-                front_xs = [bottomx,topx]
-                front_ys = [bottomy,topy]
-
-
-                return front_xs,front_ys
-
-
+            def get_front_wheel():
+                return thisx[1],thisy[1]
 
             if i == 0:
                 history_x.clear()
@@ -573,31 +520,37 @@ class Simulation:
             history_x.appendleft(thisx[0])
             history_y.appendleft(thisy[0])
 
-            line.set_data(np.asarray(thisx), np.asarray(thisy))
-            line.set_3d_properties([0, 0.5])
-            bx_s , by_s = get_back_wheel(0.5)
-            backwheel.set_data(np.asarray(bx_s), np.asarray(by_s))
-            backwheel.set_3d_properties(0.5)
-            #TAKE ANGLE FROM PLAN 
-            #print("sigma:",sigma)
-            fx_s , fy_s = get_front_wheel(0.5,sigma, theta)
-            frontwheel.set_data(np.asarray(fx_s),np.asarray(fy_s))
-            frontwheel.set_3d_properties(0.5)
+            bx_s , by_s = get_back_wheel()
+            fx_s , fy_s = get_front_wheel()
+
+            line.set_data(np.asarray([bx_s, fx_s]), np.asarray([by_s, fy_s]))
+            line.set_3d_properties([0, 0.7])
+
+            line2.set_data(np.asarray([fx_s, fx_s]), np.asarray([fy_s, fy_s]))
+            line2.set_3d_properties([0.7, 0])
+
+
+            line3.set_data(np.asarray([fx_s - 0.3 * np.sin(sigma + theta), fx_s + 0.3 * np.sin(sigma + theta)]),
+                            np.asarray([fy_s + 0.3 * np.cos(sigma + theta), fy_s - 0.3 * np.cos(sigma + theta)]))
+            line3.set_3d_properties(0.7)
+            
+
             trace.set_data(np.asarray(history_x), np.asarray(history_y))
-            trace.set_3d_properties(0.5)
-            #time_text.set_text(time_template % (i*dt))
-            backwheel_3D = Circle((0, 0), 0.5)
+            trace.set_3d_properties(0)
+            time_text.set_text(time_template % (i*dt))
+
+            backwheel_3D = Circle((0, 0), 0.4, edgecolor="black")
             ax.add_patch(backwheel_3D)
             pathpatch_2d_to_3d(backwheel_3D, z = 0, normal = [-np.sin(theta), np.cos(theta), 0])
-            pathpatch_translate(backwheel_3D, [bx_s[0]+0.25, by_s[0]+0.25, 0])
+            pathpatch_translate(backwheel_3D, [bx_s, by_s, 0])
 
-            frontwheel_3D = Circle((0, 0), 0.5)
+            frontwheel_3D = Circle((0, 0), 0.4, edgecolor="black")
             ax.add_patch(frontwheel_3D)
             pathpatch_2d_to_3d(frontwheel_3D, z = 0, normal = [-np.sin(theta+sigma), np.cos(theta+sigma), 0])
-            pathpatch_translate(frontwheel_3D, [fx_s[0] + 0.25, fy_s[0]+0.25, 0])
+            pathpatch_translate(frontwheel_3D, [fx_s, fy_s, 0])
      
             
-            return line, trace, backwheel, frontwheel
+            return line, line2, line3, trace
 
         
 
