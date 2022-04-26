@@ -118,5 +118,9 @@ class Bicycle(Dynamics):
         self.b = b
         self.m = m
         self.I_bf = I_bf
+        self.a = (I_bf/m)
+        self.c = c
+        self.a_bar = a_bar
+        self.I_f = I_f
 
         

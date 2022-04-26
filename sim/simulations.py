@@ -15,8 +15,8 @@ bicycle_controller = VehicleController(balance_controller, path_planner_controll
 dynamics = Bicycle() #define a bicycle object
 
 #Find optimal path from a start and goal position
-q_start = np.array([0, 0, 0, 0])
-q_goal = np.array([0, 0, 6, 5]) 
+q_start = np.array([0, 0, 0, 0, 0, 0, 0, 0])
+q_goal = np.array([0, 0, 6, 5, 0, 0, 0, 0]) 
 path_planner = PathPlanner(dynamics, q_start, q_goal)
 plan, inputs = path_planner.plan_to_pose()
 
@@ -31,8 +31,8 @@ sim.simulate()
 print("SIMULATION COMPLETED")
 
 #animate path_planner plan
-#sim.animate_plan(plan,inputs)
-sim.animate_plan_3D(plan,inputs)
+sim.animate_plan(plan,inputs)
+#sim.animate_plan_3D(plan,inputs)
 
 #plot the results
 

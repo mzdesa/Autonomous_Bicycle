@@ -401,6 +401,61 @@ class Simulation:
 
 
 
+
+        #Balancing dynamics
+
+        t_stop = 10  # how many seconds to simulate
+        history_len = 50  # how many trajectory points to display
+        self.states = np.asarray(self.states)
+
+        # create a time array from 0..t_stop sampled at 0.02 second steps
+        dt = self.dt
+        t = np.arange(0, t_stop, dt)
+        
+        fig = plt.figure(figsize=(5, 4))
+        ax = fig.add_subplot(autoscale_on=False, xlim=(-1, 1), ylim=(-1, 1))
+        ax.set_aspect('equal')
+        ax.grid()
+
+        line, = ax.plot([], [], 'o-', lw=2)
+        trace, = ax.plot([], [], '.-', lw=1, ms=2)
+        time_template = 'time = %.1fs'
+        time_text = ax.text(0.05, 0.9, '', transform=ax.transAxes)
+        history_x, history_y = deque(maxlen=history_len), deque(maxlen=history_len)
+
+
+        def animate(i):
+            #print(x1[i])
+            psi = plan[5, i]
+            x1 = self.dynamics.a * np.sin(psi)
+            y1 = self.dynamics.a * np.cos(psi)
+            thisx = [0, x1]
+            thisy = [0, y1]
+
+            if i == 0:
+                history_x.clear()
+                history_y.clear()
+
+            history_x.appendleft(thisx[1])
+            history_y.appendleft(thisy[1])
+
+            line.set_data(thisx, thisy)
+            trace.set_data(history_x, history_y)
+            time_text.set_text(time_template % (i*dt))
+            return line, trace, time_text
+
+
+        ani = animation.FuncAnimation(
+            fig, animate, len(self.times), interval=dt*1000, blit=True)
+        plt.show()
+
+
+
+
+
+
+
+
     
 
 
