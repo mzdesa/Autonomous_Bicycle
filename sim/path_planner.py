@@ -14,9 +14,9 @@ class PathPlanner:
     """
     Path Planner class - Calculates the optimal trajectory using the casadi NLP solver. 
     """
-    def __init__(self, dynamics, q_start, q_goal,
+    def __init__(self, dynamics, q_start, q_goal, map,
                 q_lb = [-100, -100, -5, -1, -100, -100, -100, -100], q_ub = [100, 100, 10, 10, 100, 100, 100, 100],
-                u_lb = [-10, -10, -10], u_ub = [10, 10, 10], obs_list = [], n=1000, dt=0.01):
+                u_lb = [-10, -10, -10], u_ub = [10, 10, 10], n=1000, dt=0.01):
         """
         Initializes the planner with constraints.
         Inputs:
@@ -35,7 +35,7 @@ class PathPlanner:
         self.q_ub = q_ub
         self.u_lb = u_lb
         self.u_ub = u_ub
-        self.obs_list = obs_list
+        self.map = map
         self.n = n
         self.dt= dt
 
@@ -212,10 +212,11 @@ class PathPlanner:
             constraints.append(q_tp1 == self.path_planner_q_tp1(q_t, u_t)) # You should use the bicycle_robot_model function here somehow.
 
         # Obstacle constraints
-        for obj in self.obs_list:
-            obj_x, obj_y, obj_r = obj
-            for t in range(q.shape[1]):
-                constraints.append((q[0,t]-obj_x)**2 + (q[1,t]-obj_y)**2 >= obj_r**2) # Define the obstacle constraints.
+        #NEED TO FIX THIS, ASSUMES OBSTACLES ARE ALL CIRCLES.
+        # for obj in self.obs_list:
+        #     obj_x, obj_y, obj_r = obj
+        #     for t in range(q.shape[1]):
+        #         constraints.append((q[0,t]-obj_x)**2 + (q[1,t]-obj_y)**2 >= obj_r**2) # Define the obstacle constraints.
 
         # Initial and final state constraints
         constraints.append(self.q_start == q[:,0]) # Constraint on start state.

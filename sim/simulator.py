@@ -22,7 +22,7 @@ class Simulation:
     """
     Class to manage simulations.
     """
-    def __init__(self, bicycle_controller, dynamics, q0, dt = 0.01):
+    def __init__(self, bicycle_controller, dynamics, q0,map,dt = 0.01):
         """
         Initialize a Simulation object
         Inputs:
@@ -39,6 +39,7 @@ class Simulation:
         self.states = [q0] #(state_dimn x N ) vector of states over time
         self.inputs = [np.zeros((6, 1))] #(control_dimn x N) vector of control inputs over time
         self.times = None
+        self.map = map
 
         print("self.inputs:", self.inputs)
 
@@ -71,6 +72,8 @@ class Simulation:
 
         return self.states, self.inputs, times
 
+
+    #THIS FUNCTION IS NOT CURRENTLY BEING USED WE SHOULD LOOK INTO IT SEE IF WE ACTUALLY NEED IT
     def plot_results(self, plot_args = [True, False, True]):
         """
         Plot sequence:
@@ -118,6 +121,7 @@ class Simulation:
             plt.ylabel("Y (m)")
             plt.show()
 
+    #OLD ANIMATION FUNCTION, DON'T USE
     def animate(self, plot_args = [True, True]):
         """
         Runs two animations of the bicycle
@@ -303,7 +307,7 @@ class Simulation:
 
 
 
-    def animate_plan(self, plan, inputs):
+    def animate_plan_2D(self, plan, inputs):
         """
         Runs ONE animation of the bicycle
         1) Lateral dynamicS from above in XY frame
@@ -316,10 +320,11 @@ class Simulation:
         dt = self.dt
 
         
-        #Lateral dynamics
+        # 1st plot -- Lateral dynamics
+        map = self.map
         fig = plt.figure(figsize=(5, 4))
         #maybe integrate with the map generation code from RRT over here
-        ax = fig.add_subplot(autoscale_on=False, xlim=(-10, 10), ylim=(-10, 10))
+        ax = fig.add_subplot(autoscale_on=False, xlim=(map.xmin,map.xmax ), ylim=(map.ymin, map.ymax))
         ax.set_aspect('equal')
         ax.grid()
 
@@ -372,7 +377,7 @@ class Simulation:
 
                 return front_xs,front_ys
 
-
+            def dra
 
             if i == 0:
                 history_x.clear()
@@ -402,7 +407,7 @@ class Simulation:
 
 
 
-        #Balancing dynamics
+        #2nd plot - Balancing dynamics
 
         t_stop = 10  # how many seconds to simulate
         history_len = 50  # how many trajectory points to display
@@ -448,19 +453,6 @@ class Simulation:
         ani = animation.FuncAnimation(
             fig, animate, len(self.times), interval=dt*1000, blit=True)
         plt.show()
-
-
-
-
-
-
-
-
-    
-
-
-
-
 
 
 
