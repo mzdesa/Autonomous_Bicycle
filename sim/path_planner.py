@@ -211,14 +211,23 @@ class PathPlanner:
             u_t   = u[:, t]
             constraints.append(q_tp1 == self.path_planner_q_tp1(q_t, u_t)) # You should use the bicycle_robot_model function here somehow.
 
-        # Obstacle constraints
-        #NEED TO FIX THIS, ASSUMES OBSTACLES ARE ALL CIRCLES.
-        # for obj in self.obs_list:
-        #     obj_x, obj_y, obj_r = obj
-        #     for t in range(q.shape[1]):
-        #         constraints.append((q[0,t]-obj_x)**2 + (q[1,t]-obj_y)**2 >= obj_r**2) # Define the obstacle constraints.
 
-        # Initial and final state constraints
+
+            print("constraints.length before obstacles",len(constraints))
+            #Obstacle constraints
+            #NEED TO FIX THIS, ASSUMES OBSTACLES ARE ALL CIRCLES.
+            for ob in self.map.obstacles:
+                print("self.map.obstacles.length",len(self.map.obstacles))
+                if isinstance(ob,Circular_Obstacle):
+                    x = ob.x
+                    y = ob.y
+                    r = ob.radius
+                    print(x,y,r)
+                    constraints.append((q[2,t]-x)**2 + (q[3,t]-y)**2 > r**2) # Define the obstacle constraints.
+            print("constraints.length after obstacles",len(constraints))
+
+        #Initial and final state constraints
+        
         constraints.append(self.q_start == q[:,0]) # Constraint on start state.
         constraints.append(self.q_goal == q[:,q.shape[1]-1]) # Constraint on final state.
 

@@ -17,7 +17,8 @@ bicycle_controller = VehicleController(balance_controller, path_planner_controll
 
 #define dynamics
 dynamics = Bicycle() #define a bicycle object
-Circular_Obstacles_coordinates = [[0.5,9,9],[3,2,7],[0.8,7,2]]
+#list of [radius,x,y]s for circular obstacles.
+Circular_Obstacles_coordinates = [[1,4,4],[1,6,6]]
 Circular_Obstacles_list = [Circular_Obstacle(x[0],x[1],x[2]) for x in Circular_Obstacles_coordinates]
 my_blank_map = Map(0,10,0,10,Circular_Obstacles_list) #define a 10x10 map with no obstacles.
 
