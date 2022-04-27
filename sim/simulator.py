@@ -377,7 +377,15 @@ class Simulation:
 
                 return front_xs,front_ys
 
-            def dra
+            #pick up from here.
+            def draw_obstacles(obstacles_list):
+                result = []
+                for i in obstacles_list:
+                    if isinstance(i,Circular_Obstacle):
+                        circle = plt.Circle((i.x,i.y),i.radius)
+                        result.append(circle)
+                return result       
+
 
             if i == 0:
                 history_x.clear()
@@ -385,7 +393,8 @@ class Simulation:
 
             history_x.appendleft(thisx[0])
             history_y.appendleft(thisy[0])
-
+            for o in draw_obstacles(map.obstacles):
+                ax.add_artist(o)
             line.set_data(thisx, thisy)
             bx_s , by_s = get_back_wheel(0.5)
             backwheel.set_data(bx_s,by_s)
