@@ -213,18 +213,18 @@ class PathPlanner:
 
 
 
-            print("constraints.length before obstacles",len(constraints))
+            #print("constraints.length before obstacles",len(constraints))
             #Obstacle constraints
             #NEED TO FIX THIS, ASSUMES OBSTACLES ARE ALL CIRCLES.
             for ob in self.map.obstacles:
-                print("self.map.obstacles.length",len(self.map.obstacles))
+                #print("self.map.obstacles.length",len(self.map.obstacles))
                 if isinstance(ob,Circular_Obstacle):
                     x = ob.x
                     y = ob.y
                     r = ob.radius
                     print(x,y,r)
                     constraints.append((q[2,t]-x)**2 + (q[3,t]-y)**2 > r**2) # Define the obstacle constraints.
-            print("constraints.length after obstacles",len(constraints))
+            #print("constraints.length after obstacles",len(constraints))
 
         #Initial and final state constraints
         

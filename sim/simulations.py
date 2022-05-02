@@ -44,9 +44,10 @@ print("SIMULATION COMPLETED")
 
 #animate path_planner plan
 sim.animate_plan_2D(plan,inputs)
+
 sim.animate_plan_3D(plan,inputs)
 
 #plot the results
 
-#sim.plot_results()
+sim.plot_results()
 #sim.animate()
