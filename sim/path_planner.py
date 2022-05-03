@@ -15,7 +15,7 @@ class PathPlanner:
     Path Planner class - Calculates the optimal trajectory using the casadi NLP solver. 
     """
     def __init__(self, dynamics, q_start, q_goal,
-                q_lb = [-100, -100, -5, -1, -100, -100, -100, -100], q_ub = [100, 100, 10, 10, 100, 100, 100, 100],
+                q_lb = [-100, -10*np.pi/180, -5, -1, -100, -100, -100, -100], q_ub = [100, 10*np.pi/180, 10, 10, 100, 100, 100, 100],
                 u_lb = [-10, -10, -10], u_ub = [10, 10, 10], obs_list = [], n=1000, dt=0.01):
         """
         Initializes the planner with constraints.
@@ -190,7 +190,8 @@ class PathPlanner:
 
         # # State constraints
         #constraints.extend([self.q_lb[0] <= q[0, :], q[0, :] <= self.q_ub[0]])
-        #constraints.extend([self.q_lb[1] <= q[1, :], q[1, :] <= self.q_ub[1]])
+        print("constaraint", self.q_lb[1], self.q_ub[1])
+        constraints.extend([self.q_lb[1] <= q[1, :], q[1, :] <= self.q_ub[1]])
         #constraints.extend([self.q_lb[2] <= q[2, :], q[2, :] <= self.q_ub[2]])
         #constraints.extend([self.q_lb[3] <= q[0, :], q[3, :] <= self.q_ub[0]])
         #constraints.extend([self.q_lb[4] <= q[1, :], q[4, :] <= self.q_ub[1]])

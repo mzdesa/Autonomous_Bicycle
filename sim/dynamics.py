@@ -33,7 +33,7 @@ class Dynamics:
         return q_t + self.f(q_t, u_t)*dt
         
 class Bicycle(Dynamics):
-    def __init__(self, state_bounds = None, input_bounds = None, a_bar = 0.4, b = 1, c = 0.5, m = 10, I_bf = 5, I_f = 1):
+    def __init__(self, state_bounds = None, input_bounds = None, a_bar = 0.4, b = 1.067, c = 0.5, m = 10, I_bf = 5, I_f = 1):
 
         """
         Init function for bicycle dynamics
