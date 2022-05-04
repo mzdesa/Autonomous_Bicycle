@@ -162,11 +162,12 @@ class CBF_QP:
     """
     Min Norm Control Barrier Function/QP controller for balancing
     """
-    def __init__(self, dyn_param = [0.5, 0.4, 1, 10, 1, 0.5], gamma=0.5, alpha=1, p=0.1, u_bounds = None):
+    def __init__(self, dyn_param = [0.5, 0.4, 1, 10, 1, 0.5], gains = [40, 20], gamma=0.5, alpha=1, p=0.1, u_bounds = None):
         """
         Init function for a CLF CBF QP controller
         Inputs:
         dyn_param: [a, a_bar, b, m, I_f, c] list of dynamics parameters
+        gains: list of Kp and Kd gains for K(q) ideal controller
         clf: control Lyapunov function (sympy)
         cbf: control Barrier function (sympy)
         gamma, alpha, p: optimization parameters
@@ -176,6 +177,9 @@ class CBF_QP:
         #unpack dynamics parameters
         a, a_bar, b, m, I_f, c = dyn_param
         grav = 9.81
+        #Store Gains
+        self.Kp = gains[0]
+        self.Kd = gains[1]
 
         self.state_dimn = 6 #requires the full state vector to calculate balancing dynamics
         self.input_dimn = 1 #assume only a single input for now
@@ -329,10 +333,8 @@ class CBF_QP:
 
         #Set up cost function
         #first, calculate the value of k(q) from a PD controller
-        Kp = 40
-        Kd = 20
         #ideal input without safety constraints
-        k_q = Kp*(0-q_t[4, 0]) + Kd*(0-q_t[5, 0]) #gives PD control in psi
+        k_q = self.Kp*(0-q_t[4, 0]) + self.Kd*(0-q_t[5, 0]) #gives PD control in psi
         cost = ca.mtimes((u-k_q).T, (u-k_q)) #Min norm cost function
 
         #set up optimization problem
