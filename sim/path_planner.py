@@ -139,7 +139,7 @@ class PathPlanner:
 
         n = q.shape[1] - 1
         obj = 0
-        print("goal", q_goal, q)
+        # print("goal", q_goal, q)
         for i in range(n):
             qi = q[:, i]
             ui = u[:, i]
@@ -211,8 +211,6 @@ class PathPlanner:
             u_t   = u[:, t]
             constraints.append(q_tp1 == self.path_planner_q_tp1(q_t, u_t)) # You should use the bicycle_robot_model function here somehow.
 
-
-
             #print("constraints.length before obstacles",len(constraints))
             #Obstacle constraints
             #NEED TO FIX THIS, ASSUMES OBSTACLES ARE ALL CIRCLES.
@@ -222,7 +220,7 @@ class PathPlanner:
                     x = ob.x
                     y = ob.y
                     r = ob.radius
-                    print(x,y,r)
+                    # print(x,y,r)
                     constraints.append((q[2,t]-x)**2 + (q[3,t]-y)**2 > r**2) # Define the obstacle constraints.
             #print("constraints.length after obstacles",len(constraints))
 
@@ -247,6 +245,7 @@ class PathPlanner:
         Returns a plan (shape (4, n+1)) of waypoints and a sequence of inputs
         (shape (2, n)) of inputs at each timestep.
         """
+        print("Path Planning Control Beginning")
         n = self.n
         opti = Opti()
 

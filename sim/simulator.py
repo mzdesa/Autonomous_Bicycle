@@ -62,6 +62,7 @@ class Simulation:
         #print("self.inputs second print",self.inputs)
 
         for t in times:
+            print("Solving for control input")
             u_t = self.controller.control_input(q_t, q_goal) #get the current input
             self.inputs.append(u_t) #begin populating the input vector
 
