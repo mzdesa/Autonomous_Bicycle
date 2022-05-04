@@ -222,7 +222,7 @@ class PathPlanner:
                     x = ob.x
                     y = ob.y
                     r = ob.radius
-                    print(x,y,r)
+                    #print(x,y,r)
                     constraints.append((q[2,t]-x)**2 + (q[3,t]-y)**2 > r**2) # Define the obstacle constraints.
             #print("constraints.length after obstacles",len(constraints))
 
