@@ -156,8 +156,9 @@ class EKF:
         fig, ax = plt.subplots(3, 1, sharex=True)
         ax[0].plot(times, states[:, 0], label='x')
         ax[1].plot(times, states[:, 1], label='y')
-        ax[2].plot(times, states[:, 2], label='theta')
         ax[2].plot(times, zs, '--', label='Measurement')
+        ax[2].plot(times, states[:, 2], label='theta')
+        
 
         ax[0].set_ylabel('x [m]')
         ax[1].set_ylabel('y [m]')
@@ -218,8 +219,16 @@ dt = 0.01
 sigmas = plan[1, :]
 vs = plan[7, :]
 
+#Simulate noise
+noise = np.random.normal(0, 0.1,len(vs))
+vs = [vs[i] + noise[i] for i in range(len(vs))]
+
 #Measurements
 thetas = plan[0, :]
+
+#Simulate noise
+noise = np.random.normal(0, 0.1,len(thetas))
+thetas = [thetas[i] + noise[i] for i in range(len(thetas))]
 
 #For plotting
 states = []
