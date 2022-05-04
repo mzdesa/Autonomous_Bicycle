@@ -28,27 +28,31 @@ class EKF:
         """Predicts the next state based on an input u and previus estimate of state and variance, xm and Pm"""
         
         #1
-        #inputs = [sigma,a_x, a_y]
-        #states = [x, y, theta, v]
+        #inputs = [sigma,ax, ay, ax]
+        #states = [x, y, theta, v, psi]
         """sigma = u[0]
-        a_x = u[1]
-        a_y = u[2]
+        ax = u[1]
+        ay = u[2]
+        az = u[3]
         
         x = xm[0, 0]
         y = xm[1, 0]
         theta = xm[2, 0]
         v = xm[3, 0]
+        psi = xm[4, 0]
 
         q_dot = np.matrix([[v*np.cos(theta)], 
                     [v*np.sin(theta)],
                     [v*np.tan(sigma)/self.b],
-                    [np.sqrt(a_x**2 + a_y**2)]])
+                    [ax], 
+                    [np.arctan((ay/az)]])
 
-        A = np.eye(5) + dt*np.matrix([[0, 0, -v*np.sin(theta), np.cos(theta)], 
-                                    [0, 0, v*np.cos(theta), np.sin(theta)],
-                                    [0, 0, 0, np.tan(sigma)/self.b], 
-                                    [0, 0, 0 ,0]])
-        L = dt*np.eye(4)"""
+        A = np.eye(5) + dt*np.matrix([[0, 0, -v*np.sin(theta), np.cos(theta), 0], 
+                                    [0, 0, v*np.cos(theta), np.sin(theta), 0],
+                                    [0, 0, 0, np.tan(sigma)/self.b, 0],
+                                    [0, 0, 0, 0, 0] 
+                                    [0, 0, 0, 0, 0]])
+        L = dt*np.eye(5)"""
 
 
 
@@ -75,23 +79,27 @@ class EKF:
 
 
         #3
-        #inputs = [theta, v]
-        #states = [x, y, sigma]
+        #inputs = [theta, ax, ay, az]
+        #states = [x, y, sigma, v]
         """theta = u[0]
-        v = u[1]
+        ax = u[1]
+        ay = u[2]
+        az = u[3]
         
         x = xm[0, 0]
         y = xm[1, 0]
         sigma = xm[2, 0]
+        v = xm[3, 0]
 
         q_dot = np.matrix([[v*np.cos(theta)], 
                     [v*np.sin(theta)], 
-                    [np.arctan(self.b*theta/v)]])
+                    [np.arctan(self.b*theta/v)], 
+                    [ax]])
 
-        A = np.eye(5) + dt*np.matrix([[0, 0, 0], 
-                                    [0, 0, 0],
-                                    [0, 0, 0]])
-        L = dt*np.eye(3)"""
+        A = np.eye(4) + dt*np.matrix([[0, 0, 0, np.cos(theta)], 
+                                    [0, 0, 0, np.sin(theta)],
+                                    [0, 0, 0, 0]])
+        L = dt*np.eye(4)"""
 
 
         #Prediction step equations
