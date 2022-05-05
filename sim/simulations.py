@@ -9,11 +9,11 @@ File to create and run simulations
 """
 print("HELLO")
 #first, define the different controllers for the vehicle
-balance_controller = BalancePID(np.array([1, 1, 1]))
+# balance_controller = BalancePID(np.array([1, 1, 1]))
+balance_controller = CBF_QP() #use CBF QP controller with default parameters
 path_planner_controller = PathPlannerController() #For now, just try the balancing dynamics, so use the zero planning controller
 bicycle_controller = VehicleController(balance_controller, path_planner_controller) #create the full state controller
 #IM NOT SURE WE ACTUALLY USE THE PATH PLANNER CONTROLLER CLASS
-
 
 #define dynamics
 dynamics = Bicycle() #define a bicycle object
@@ -31,7 +31,9 @@ plan, inputs = path_planner.plan_to_pose()
 #path_planner.plot(plan, inputs)
 #THE BICYCLE CONTROLLER IS MEANT TO CONTAIN THE PATH PLANNER BUT THEY SEEM TOTALLY DISCONNECTED.
 #Next, define simulation object
-sim = Simulation(bicycle_controller, dynamics, np.array([[np.pi/4], [np.pi/4], [0.5], [1], [np.pi/16], [0]]),my_blank_map)
+# sim = Simulation(bicycle_controller, dynamics, np.array([[np.pi/4], [np.pi/4], [0.5], [1], [np.pi/16], [0]]),my_blank_map)
+sim = Simulation(bicycle_controller, dynamics,  np.array([[0, 0, 1, 1, 0, 0]]).T,my_blank_map)
+
 print("sim", sim)
 
 #run the simulation

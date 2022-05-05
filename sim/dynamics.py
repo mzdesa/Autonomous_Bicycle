@@ -111,6 +111,10 @@ class Bicycle(Dynamics):
         self.f = f
         self.state_bounds = state_bounds
         self.input_bounds = input_bounds
+        
+        #define symbolic variables for CBF CLF controller
+        self.f_sym = None #generate with the function below
+        self.g_sym = None
 
 
         #revisit this
@@ -122,5 +126,11 @@ class Bicycle(Dynamics):
         self.c = c
         self.a_bar = a_bar
         self.I_f = I_f
+    
+    def gen_sym(self):
+        """
+        Generates symbolic variables for bicycle dynamics. Populates f_sym and g_sym.
+        Note: only run if using CBF-CLF controller, as computation is somewhat time-consuming.
+        """
 
         
