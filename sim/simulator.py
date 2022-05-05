@@ -314,7 +314,7 @@ class Simulation:
         
         """
         t_stop = 10  # how many seconds to simulate
-        history_len = 200  # how many trajectory points to display
+        history_len = 1000  # how many trajectory points to display
         self.states = np.asarray(self.states)
         # create a time array from 0..t_stop sampled at dt second steps
         dt = self.dt

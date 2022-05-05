@@ -18,13 +18,13 @@ bicycle_controller = VehicleController(balance_controller, path_planner_controll
 #define dynamics
 dynamics = Bicycle() #define a bicycle object
 #list of [radius,x,y]s for circular obstacles.
-Circular_Obstacles_coordinates = [[1,4,4],[1,6,6]]
+Circular_Obstacles_coordinates = [[0.5,4,4],[0.5,7,6]]
 Circular_Obstacles_list = [Circular_Obstacle(x[0],x[1],x[2]) for x in Circular_Obstacles_coordinates]
-my_blank_map = Map(0,10,0,10,Circular_Obstacles_list) #define a 10x10 map with no obstacles.
+my_blank_map = Map(0,11,0,11,Circular_Obstacles_list) #define a 10x10 map with no obstacles.
 
 #Find optimal path from a start and goal position
 q_start = np.array([0, 0, 1, 1, 0, 0, 0, 0])
-q_goal = np.array([0, 0, 8, 8, 0, 0, 0, 0]) 
+q_goal = np.array([0, 0, 9, 9, 0, 0, 0, 0]) 
 path_planner = PathPlanner(dynamics, q_start, q_goal,my_blank_map)
 plan, inputs = path_planner.plan_to_pose()
 
