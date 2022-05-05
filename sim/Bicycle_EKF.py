@@ -17,9 +17,10 @@ class EKF:
         #Bicycle length
         self.b = length
         #Process noise variance
-        self.Sigma_vv = np.matrix([[0.01, 0, 0], 
-                                    [0, 0.01, 0],
-                                    [0, 0, 0.01]])
+        self.Sigma_vv = np.matrix([[0.01, 0, 0, 0], 
+                                    [0, 0.01, 0, 0],
+                                    [0, 0, 0.01, 0], 
+                                    [0, 0, 0, 0.01]])
         #Measurement noise variance
         self.Sigma_ww = np.matrix([0.01])
 
@@ -28,7 +29,7 @@ class EKF:
         """Predicts the next state based on an input u and previus estimate of state and variance, xm and Pm"""
         
         #1
-        #inputs = [sigma,ax, ay, ax]
+        #inputs = [sigma, ax, ay, az]
         #states = [x, y, theta, v, psi]
         """sigma = u[0]
         ax = u[1]
@@ -57,23 +58,28 @@ class EKF:
 
 
         #2
-        #inputs = [sigma, v]
-        #states = [x, y, theta]
+        #inputs = [sigma, v, v_dot, sigma_dot]
+        #states = [x, y, theta, theta_dot]
         sigma = u[0]
-        v = u[1] 
+        v = u[1]
+        sigma_dot =u[2]
+        v_dot = u[3]
         
         x = xm[0, 0]
         y = xm[1, 0]
         theta = xm[2, 0]
+        theta_dot = xm[3, 0]
 
         q_dot = np.matrix([[v*np.cos(theta)], 
                     [v*np.sin(theta)],
-                    [v*np.tan(sigma)/self.b]])
+                    [v*np.tan(sigma)/self.b], 
+                    [v_dot*tan(sigma)/self.b + (v/self.b)*(sigma_dot)*(1/cos(sigma))**2]])
 
-        A = np.eye(3) + dt*np.matrix([[0, 0, -v*np.sin(theta)], 
-                                    [0, 0, v*np.cos(theta)],
-                                    [0, 0, 0]])
-        L = dt*np.eye(3)
+        A = np.eye(4) + dt*np.matrix([[0, 0, -v*np.sin(theta), 0], 
+                                    [0, 0, v*np.cos(theta), 0],
+                                    [0, 0, 0, 0], 
+                                    [0, 0, 0, 0]])
+        L = dt*np.eye(4)
 
 
 
@@ -116,13 +122,14 @@ class EKF:
         x = xp[0, 0]
         y = xp[1, 0]
         theta = xp[2, 0]
+        theta_dot = xp[3, 0]
 
         h = np.matrix([theta])
-        H = np.matrix([0, 0, 1])
+        H = np.matrix([0, 0, 1, 0])
 
         #Measurement update equations
         K = Pp @ H.T @ np.linalg.inv(H @ Pp @ H.T + self.Sigma_ww)
-        Pm = (np.eye(3) - K @ H) @ Pp
+        Pm = (np.eye(4) - K @ H) @ Pp
         xm = xp + K * (z - h)
         return xm, Pm
 
@@ -153,16 +160,19 @@ class EKF:
         plt.show()
 
         #States plot
-        fig, ax = plt.subplots(3, 1, sharex=True)
+        fig, ax = plt.subplots(4, 1, sharex=True)
         ax[0].plot(times, states[:, 0], label='x')
         ax[1].plot(times, states[:, 1], label='y')
         ax[2].plot(times, zs, '--', label='Measurement')
         ax[2].plot(times, states[:, 2], label='theta')
+        ax[2].legend()
+        ax[3].plot(times, states[:, 3], label='theta_dot')
         
 
         ax[0].set_ylabel('x [m]')
         ax[1].set_ylabel('y [m]')
         ax[2].set_ylabel('$\Theta$ [rad]')
+        ax[3].set_ylabel('$\Theta$_dot [rad/s]')
 
         
         plt.xlabel('Time (s)')
@@ -171,12 +181,16 @@ class EKF:
         plt.show()
 
         # Inputs plot
-        figHist, ax = plt.subplots(2, 1, sharex=True)
+        figHist, ax = plt.subplots(4, 1, sharex=True)
         ax[0].plot(times[:-1], inputs[:, 0], label='sigma')
         ax[1].plot(times[:-1], inputs[:, 1], label='v')
+        ax[2].plot(times[:-1], inputs[:, 2], label='sigma_dot')
+        ax[3].plot(times[:-1], inputs[:, 3], label='v_dot')
 
         ax[0].set_ylabel('sigma [rad]')
         ax[1].set_ylabel('v [m/s]')
+        ax[2].set_ylabel('sigma_dot [rad/s]')
+        ax[3].set_ylabel('v [m/s^2]')
 
         
         plt.xlabel('Time (s)')
@@ -211,13 +225,15 @@ plan, inputs = path_planner.plan_to_pose()
 kalman_filer = EKF()
 
 #initial values
-xm= np.matrix([0, 0, 0]).T
-Pm= np.eye(3)
+xm= np.matrix([0, 0, 0, 0]).T
+Pm= np.eye(4)
 dt = 0.01
 
 #Inputs
 sigmas = plan[1, :]
 vs = plan[7, :]
+v_dots = inputs[0, :]
+sigma_dots = inputs[1, :]
 
 #Simulate noise
 noise = np.random.normal(0, 0.1,len(vs))
@@ -238,13 +254,13 @@ states.append(xm.T.tolist()[0])
 #Run the filter for n iterations
 n = len(thetas) -1 
 for i in range(n):
-    u = [sigmas[i], vs[i]]
+    u = [sigmas[i], vs[i], sigma_dots[i], v_dots[i]]
     z = thetas[i]
     xm, Pm = kalman_filer.run_filter(xm, Pm, z, u, dt)
 
     #For plotting
     states.append(xm.T.tolist()[0])
-    us.append([sigmas[i], vs[i]])
+    us.append([sigmas[i], vs[i], sigma_dots[i], v_dots[i]])
 
 #Plot estimate
 measurements = thetas
