@@ -15,8 +15,8 @@ class PathPlanner:
     Path Planner class - Calculates the optimal trajectory using the casadi NLP solver. 
     """
     def __init__(self, dynamics, q_start, q_goal, map,
-                q_lb = [-100, -100, -5, -1, -100, -100, -100, -100], q_ub = [100, 100, 10, 10, 100, 100, 100, 100],
-                u_lb = [-10, -10, -10], u_ub = [10, 10, 10], n=1000, dt=0.01):
+                q_lb = [-100, -100, -5, -1, -100, -100, -100], q_ub = [100, 100, 10, 10, 100, 100, 100],
+                u_lb = [-10, -10], u_ub = [10, 10], n=1000, dt=0.01):
         """
         Initializes the planner with constraints.
         Inputs:
@@ -61,10 +61,10 @@ class PathPlanner:
 
         #create variables for each vector element
         #Inputs:
-        v_dot, sigma_dot, alpha_ddot= u[0], u[1], u[2]
+        v_dot, sigma_dot = u[0], u[1]
 
         #assign variables to state vector elements
-        theta, sigma, x, y, theta_dot, psi, psi_dot, v = q[0], q[1], q[2], q[3], q[4], q[5], q[6], q[7]
+        theta, sigma, x, y, theta_dot, v = q[0], q[1], q[2], q[3], q[4], q[5]
 
 
         #Assembly remaining derivative terms
@@ -72,9 +72,9 @@ class PathPlanner:
         x_dot = v*cas.cos(theta)
         y_dot = v*cas.sin(theta)
         theta_ddot = v_dot*cas.tan(sigma)/b + (v/b)*(sigma_dot)*(1/cas.cos(sigma))**2
-        psi_ddot = (1/(m*a**2))*(m*a**2*theta_dot**2*cas.sin(psi)*cas.cos(psi) + m*v*a*theta_dot*cas.cos(psi)+m*c*a*theta_ddot*cas.cos(psi)+I_f*alpha_ddot+m*a_bar*g*cas.sin(psi))
+        #psi_ddot = (1/(m*a**2))*(m*a**2*theta_dot**2*cas.sin(psi)*cas.cos(psi) + m*v*a*theta_dot*cas.cos(psi)+m*c*a*theta_ddot*cas.cos(psi)+I_f*alpha_ddot+m*a_bar*g*cas.sin(psi))
         
-        q_dot = vertcat(theta_dot, sigma_dot, x_dot, y_dot, theta_ddot, psi_dot, psi_ddot, v_dot)
+        q_dot = vertcat(theta_dot, sigma_dot, x_dot, y_dot, theta_ddot, v_dot)
         return q + self.dt*q_dot
 
     def initial_cond(self):
@@ -100,20 +100,18 @@ class PathPlanner:
             optimization variables.
         """
         n = self.n
-        q0 = np.zeros((8, n + 1))
-        u0 = np.zeros((3, n))
+        q0 = np.zeros((6, n + 1))
+        u0 = np.zeros((2, n))
 
         thetas = np.linspace(self.q_start[0],self.q_goal[0],n+1).reshape((1,n+1))
         sigma = np.linspace(self.q_start[1],self.q_goal[1],n+1).reshape((1,n+1))
         xs = np.linspace(self.q_start[2],self.q_goal[2],n+1).reshape((1,n+1))
         ys = np.linspace(self.q_start[3],self.q_goal[3],n+1).reshape((1,n+1))
         theta_dots = np.linspace(self.q_start[4],self.q_goal[4],n+1).reshape((1,n+1))
-        psis = np.linspace(self.q_start[5],self.q_goal[5],n+1).reshape((1,n+1))
-        psi_dots = np.linspace(self.q_start[6],self.q_goal[6],n+1).reshape((1,n+1))
-        vs = np.linspace(self.q_start[7],self.q_goal[7],n+1).reshape((1,n+1))
+        vs = np.linspace(self.q_start[5],self.q_goal[5],n+1).reshape((1,n+1))
 
 
-        q0 = vertcat(thetas, sigma, xs, ys, theta_dots, psis, psi_dots, vs)
+        q0 = vertcat(thetas, sigma, xs, ys, theta_dots, vs)
 
         return q0, u0
 
@@ -249,13 +247,13 @@ class PathPlanner:
         n = self.n
         opti = Opti()
 
-        q = opti.variable(8, n + 1)
+        q = opti.variable(6, n + 1)
         #need to change the opti variables
         #u[0] u[3]
-        u = opti.variable(3, n)
+        u = opti.variable(2, n)
 
-        Q = np.diag([1, 1, 1, 1, 1, 1, 1, 1])
-        R = 2 * np.diag([1, 1, 1])
+        Q = np.diag([1, 1, 1, 1, 1, 1])
+        R = 2 * np.diag([1, 1])
         P = n * Q
 
         q0, u0 = self.initial_cond()
