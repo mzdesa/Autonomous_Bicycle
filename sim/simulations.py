@@ -1,3 +1,4 @@
+from sre_parse import State
 from simulator import *
 from controllers import *
 from dynamics import *
@@ -8,6 +9,7 @@ from obstacles import *
 File to create and run simulations
 """
 print("HELLO")
+
 #first, define the different controllers for the vehicle
 # balance_controller = BalancePID(np.array([1, 1, 1]))
 balance_controller = CBF_QP() #use CBF QP controller with default parameters
@@ -38,7 +40,7 @@ sim = Simulation(bicycle_controller, dynamics,  np.array([[0, 0, 1, 1, 0, 0]]).T
 print("sim", sim)
 
 #run the simulation
-sim.simulate()
+sim_states, sim_inputs, times =sim.simulate()
 print("SIMULATION COMPLETED")
 
 #THE plan IS PASSED DIRECTLY FROM THE PATH PLANNER, THE
@@ -46,11 +48,11 @@ print("SIMULATION COMPLETED")
 #NOT USED AT ALL
 
 #animate path_planner plan
-#sim.animate_plan_2D(plan,inputs)
+sim.animate_plan_2D(np.asarray(sim_states),np.asarray(sim_inputs))
 
 #sim.animate_plan_3D(plan,inputs)
 
 #plot the results
-
+print("states", sim_states)
 sim.plot_results()
 #sim.animate()

@@ -68,13 +68,13 @@ class Simulation:
             theta, sigma, x, y, theta_dot, v =  self.plan[:, t+1]
             q_goal = np.array([[theta], [theta_dot], [x], [y], [0], [0]])
             #print("q_goal", q_goal)
-            u_t = self.controller.control_input(q_t, q_goal) #get the current input
+            u_t = self.controller.control_input(q_t, q_goal, np.array([[v], [v_dot], [sigma], [sigma_dot]])) #get the current input
             
 
             #Simulate the dynamics by getting the next step
             u_t = np.array([[v], [v_dot], [sigma], [sigma_dot], [u_t[-1, 0]]])
             self.inputs.append(u_t) #begin populating the input vector
-            q_t = self.dynamics.q_tp1(q_t, u_t, t, 0.1) #get the next state by calling q_tp1 dynamics method
+            q_t = self.dynamics.q_tp1(q_t, u_t, t, self.dt) #get the next state by calling q_tp1 dynamics method
             #add the state and the input to the object parameters
             #print("dynamics qt", q_t)
             self.states.append(q_t)
@@ -122,13 +122,13 @@ class Simulation:
 
 
             for i in range(5):
-                axs[i].plot(self.times, self.inputs[1:, i, 0])
+                axs[i].plot(self.times, self.inputs[1:,i,0])
                 axs[i].set(xlabel=xlabels, ylabel=ylabels[i])
             plt.show()
 
         if plot_args[2]:
             #next, plot the x and y against each other to show path in space
-            plt.plot(self.states[1:, 2], self.states[1:, 3])
+            plt.plot(self.states[1:, 2, 0], self.states[1:, 3, 0])
             plt.title("XY Path of bicycle rear wheel")
             plt.xlabel("X (m)")
             plt.ylabel("Y (m)")
@@ -355,11 +355,11 @@ class Simulation:
 
             #Plots the bicylce fram
             #MAKE THIS INTO A FUNC OF THETA
-            theta = plan[0,i]
+            theta = plan[i,0]
             length = self.dynamics.b
-            sigma = plan[1,i]
-            thisx = [plan[2, i], plan[2, i] + length*np.cos(theta)]
-            thisy = [plan[3, i], plan[3, i] + length*np.sin(theta)]
+            sigma = inputs[i,2]
+            thisx = [plan[i, 2], plan[i, 2] + length*np.cos(theta)]
+            thisy = [plan[i, 3], plan[i, 3] + length*np.sin(theta)]
 
 
             
@@ -453,7 +453,7 @@ class Simulation:
 
         def animate(i):
             #print(x1[i])
-            psi = plan[5, i]
+            psi = plan[i, 4]
             x1 = self.dynamics.a * np.sin(psi)
             y1 = self.dynamics.a * np.cos(psi)
             thisx = [0, x1]

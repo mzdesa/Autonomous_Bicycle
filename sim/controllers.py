@@ -37,7 +37,7 @@ class VehicleController:
         self.balance_controller = balance_controller
         self.path_planner_controller = path_planner_controller
 
-    def control_input(self, q, q_goal):
+    def control_input(self, q, q_goal, inputs_from_path_planner):
         """
         Function to find the planning variable inputs to get q to q_goal
         Inputs:
@@ -46,7 +46,8 @@ class VehicleController:
         Returns: 
         vehicle input vector u: u = [v, v_dot, sigma, sigma_dot, alpha_ddot].T (numpy vector)
         """
-        controller_14 = self.path_planner_controller.control_input(q, q_goal) #get the first four variables in the input vector
+        #controller_14 = self.path_planner_controller.control_input(q, q_goal) #get the first four variables in the input vector
+        controller_14 = inputs_from_path_planner
         print("controller 14 shape", controller_14.shape)
         print("controller 14", controller_14)
         print("alpha ddot calculation beginning")
@@ -364,6 +365,8 @@ class PathPlannerController:
     def __init__(self):
         pass
     def control_input(self, q, qd):
+        return np.zeros((4, 1)) # do nothing
+    def control_input_from_path_planner(inputs):
         return np.zeros((4, 1)) # do nothing
 
 if __name__ == '__main__':
