@@ -18,7 +18,7 @@ bicycle_controller = VehicleController(balance_controller, path_planner_controll
 #define dynamics
 dynamics = Bicycle() #define a bicycle object
 #list of [radius,x,y]s for circular obstacles.
-Circular_Obstacles_coordinates = [[0.5,4,4],[0.5,7,6]]
+Circular_Obstacles_coordinates = [] #[[0.5,4,4],[0.5,7,6]]
 Circular_Obstacles_list = [Circular_Obstacle(x[0],x[1],x[2]) for x in Circular_Obstacles_coordinates]
 my_blank_map = Map(0,11,0,11,Circular_Obstacles_list) #define a 10x10 map with no obstacles.
 
@@ -33,7 +33,7 @@ plan, inputs = path_planner.plan_to_pose()
 #THE BICYCLE CONTROLLER IS MEANT TO CONTAIN THE PATH PLANNER BUT THEY SEEM TOTALLY DISCONNECTED.
 #Next, define simulation object
 # sim = Simulation(bicycle_controller, dynamics, np.array([[np.pi/4], [np.pi/4], [0.5], [1], [np.pi/16], [0]]),my_blank_map)
-sim = Simulation(bicycle_controller, dynamics,  np.array([[0, 0, 1, 1, 0, 0]]).T,my_blank_map)
+sim = Simulation(bicycle_controller, dynamics,  np.array([[0, 0, 1, 1, 0, 0]]).T,my_blank_map, plan, inputs)
 
 print("sim", sim)
 
@@ -46,9 +46,9 @@ print("SIMULATION COMPLETED")
 #NOT USED AT ALL
 
 #animate path_planner plan
-sim.animate_plan_2D(plan,inputs)
+#sim.animate_plan_2D(plan,inputs)
 
-sim.animate_plan_3D(plan,inputs)
+#sim.animate_plan_3D(plan,inputs)
 
 #plot the results
 

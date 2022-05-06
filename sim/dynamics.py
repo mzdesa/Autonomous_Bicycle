@@ -30,7 +30,7 @@ class Dynamics:
         t: current time, float
         """
         #otherwise return Euler discretized next step
-        return q_t + self.f(q_t, u_t)*dt
+        return q_t + self.f(q_t, u_t)*dt 
         
 class Bicycle(Dynamics):
     def __init__(self, state_bounds = None, input_bounds = None, a_bar = 0.4, b = 1, c = 0.5, m = 10, I_bf = 5, I_f = 1):
@@ -105,6 +105,8 @@ class Bicycle(Dynamics):
             y_dot = v*sin(theta)
             psi_ddot = (1/(m*a**2))*(m*a**2*theta_dot**2*sin(psi)*cos(psi) + m*v*a*theta_dot*cos(psi)+m*c*a*theta_ddot*cos(psi)+I_f*alpha_ddot+m*a_bar*g*sin(psi))
             q_dot = np.array([[theta_dot, theta_ddot, x_dot, y_dot, psi_dot, psi_ddot]]).T
+
+            #print("q_dot", q_dot)
             return q_dot
         
         #define class parameters

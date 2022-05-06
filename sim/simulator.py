@@ -22,7 +22,7 @@ class Simulation:
     """
     Class to manage simulations.
     """
-    def __init__(self, bicycle_controller, dynamics, q0,map,dt = 0.01):
+    def __init__(self, bicycle_controller, dynamics, q0,map, plan, inputs, dt = 0.01):
         """
         Initialize a Simulation object
         Inputs:
@@ -37,9 +37,11 @@ class Simulation:
         self.q0 = q0
         self.dt = dt
         self.states = [q0] #(state_dimn x N ) vector of states over time
-        self.inputs = [np.zeros((6, 1))] #(control_dimn x N) vector of control inputs over time
+        self.inputs = [np.array([[0, 0, 0, 0, 0]]).T] #(control_dimn x N) vector of control inputs over time
         self.times = None
         self.map = map
+        self.plan = plan
+        self.planned_inputs = inputs
 
         print("self.inputs:", self.inputs)
 
@@ -53,7 +55,6 @@ class Simulation:
         inputs: (control_dimn x N) vector of control inputs over time
         """
         q_goal = np.zeros((6, 1)) #SUBJECT TO CHANGE BASED ON PATH PLANNER - here, just leave as a vector of zeroes.
-    
         q_t = self.q0  #initialize x_t as q0
         times = np.arange(0,T,self.dt) #create an array of times to go through
         self.times = times #store in class variable
@@ -61,21 +62,29 @@ class Simulation:
         
         #print("self.inputs second print",self.inputs)
 
-        for t in times:
+        for t in range(len(times)):
             print("Solving for control input")
+            v_dot, sigma_dot = self.planned_inputs[:, t]
+            theta, sigma, x, y, theta_dot, v =  self.plan[:, t+1]
+            q_goal = np.array([[theta], [theta_dot], [x], [y], [0], [0]])
+            #print("q_goal", q_goal)
             u_t = self.controller.control_input(q_t, q_goal) #get the current input
-            self.inputs.append(u_t) #begin populating the input vector
+            
 
             #Simulate the dynamics by getting the next step
+            u_t = np.array([[v], [v_dot], [sigma], [sigma_dot], [u_t[-1, 0]]])
+            self.inputs.append(u_t) #begin populating the input vector
             q_t = self.dynamics.q_tp1(q_t, u_t, t, 0.1) #get the next state by calling q_tp1 dynamics method
             #add the state and the input to the object parameters
+            #print("dynamics qt", q_t)
             self.states.append(q_t)
+            #print(self.states, self.inputs)
 
         return self.states, self.inputs, times
 
 
     #THIS FUNCTION IS NOT CURRENTLY BEING USED WE SHOULD LOOK INTO IT SEE IF WE ACTUALLY NEED IT
-    def plot_results(self, plot_args = [True, False, True]):
+    def plot_results(self, plot_args = [True, True, True]):
         """
         Plot sequence:
         1) Plot evolution of each state variable in time
@@ -97,6 +106,7 @@ class Simulation:
             xlabels = 'Time (s)'
             ylabels = ['theta', 'theta_dot', 'x', 'y', 'psi', 'psi_dot']
             self.states = np.asarray(self.states)
+            #print("States", self.states, np.shape(self.states))
             for i in range(6):
                 axs[i].plot(self.times, self.states[1:,i,0])
                 axs[i].set(xlabel=xlabels, ylabel=ylabels[i]) #pull labels from the list above
@@ -105,12 +115,14 @@ class Simulation:
         if plot_args[1]:
             #next, plot the input variables in a 5x1 subplot
             fig, axs = plt.subplots(5)
+            
             fig.suptitle('Evolution of Bicycle Inputs in Time')
             ylabels = ['v', 'v_dot', 'sigma', 'sigma_dot', 'alpha_ddot']
             self.inputs = np.asarray(self.inputs)
 
+
             for i in range(5):
-                axs[i].plot(self.times, self.inputs[1:])
+                axs[i].plot(self.times, self.inputs[1:, i, 0])
                 axs[i].set(xlabel=xlabels, ylabel=ylabels[i])
             plt.show()
 

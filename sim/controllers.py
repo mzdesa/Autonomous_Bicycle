@@ -46,7 +46,6 @@ class VehicleController:
         Returns: 
         vehicle input vector u: u = [v, v_dot, sigma, sigma_dot, alpha_ddot].T (numpy vector)
         """
-        print("q", q)
         controller_14 = self.path_planner_controller.control_input(q, q_goal) #get the first four variables in the input vector
         print("controller 14 shape", controller_14.shape)
         print("controller 14", controller_14)
@@ -290,6 +289,7 @@ class CBF_QP:
         """
         #set up variables for easier access to class parameters
         q_t = q_t.reshape((q_t.shape[0], 1)) #ensure x_t has correct dimensions
+        print("qt", q_t)
         h1 = self.cbf1_lambda(q_t) #cbf function value
         h2 = self.cbf2_lambda(q_t)
 
@@ -340,7 +340,8 @@ class CBF_QP:
         #set up optimization problem
         opti.minimize(cost)
         p_opts = {"expand": False}
-        opti.solver("ipopt", p_opts)
+        s_opts = {}
+        opti.solver("ipopt", p_opts, s_opts)
 
         #solve optimization
         sol = opti.solve()
