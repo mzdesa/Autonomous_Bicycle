@@ -1,7 +1,9 @@
 import numpy as np
+from scipy.stats import multivariate_normal
 """
 File to define obstacle objects to be used for path planning
 """
+
 class Circular_Obstacle:
     """
     Generic  Obstacle
@@ -16,7 +18,12 @@ class Circular_Obstacle:
         self.radius = radius
         self.x = x
         self.y = y
-        
+
+    def get_cost(self,x,y):
+        #rv = multivariate_normal([self.x, self.y], [[100, 0], [0, 100]])
+        #print(rv.pdf([0, 0]))
+        return 50/np.e**((x-self.x)**2 + (y-self.y)**2)
+              
     
     # def collision_check(self, points):
     #     """

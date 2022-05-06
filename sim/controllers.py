@@ -341,7 +341,7 @@ class CBF_QP:
         #set up optimization problem
         opti.minimize(cost)
         p_opts = {"expand": False}
-        s_opts = {}
+        s_opts = {"max_iter": 1e4, "acceptable_tol": 1e10}
         opti.solver("ipopt", p_opts, s_opts)
 
         #solve optimization
