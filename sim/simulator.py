@@ -68,8 +68,8 @@ class Simulation:
             theta, sigma, x, y, theta_dot, v =  self.plan[:6, t+1]
             q_goal = np.array([[theta], [theta_dot], [x], [y], [0], [0]])
             #print("q_goal", q_goal)
-            #u_t = self.controller.control_input(q_t, q_goal, np.array([[v], [v_dot], [sigma], [sigma_dot]])) #get the current input
-            u_t = np.array([[0], [0]])
+            u_t = self.controller.control_input(q_t, q_goal, np.array([[v], [v_dot], [sigma], [sigma_dot]])) #get the current input
+            #u_t = np.array([[0], [0]])
 
             #Simulate the dynamics by getting the next step
             u_t = np.array([[v], [v_dot], [sigma], [sigma_dot], [u_t[-1, 0]]])
@@ -212,8 +212,12 @@ class Simulation:
                 result = []
                 for i in obstacles_list:
                     if isinstance(i,Circular_Obstacle):
-                        circle = plt.Circle((i.x,i.y),i.radius)
-                        result.append(circle)
+                        if not(i.hill):
+                            circle = plt.Circle((i.x,i.y),i.radius,color = 'b')
+                            result.append(circle)
+                        else:
+                            circle = plt.Circle((i.x,i.y),i.radius,color = 'r')
+                            result.append(circle)
                 return result       
 
 

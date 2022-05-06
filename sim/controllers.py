@@ -162,7 +162,7 @@ class CBF_QP:
     """
     Min Norm Control Barrier Function/QP controller for balancing
     """
-    def __init__(self, dyn_param = [0.5, 0.4, 1, 10, 1, 0.5], gains = [200, 50], gamma=0.5, alpha=70, p=0.1, u_bounds = None):
+    def __init__(self, dyn_param = [0.5, 0.4, 1, 10, 1, 0.5], gains = [250, 50], gamma=0.5, alpha=200 , p=0.1, u_bounds = None):
         """
         Init function for a CLF CBF QP controller
         Inputs:
@@ -350,9 +350,9 @@ class CBF_QP:
 
         #return the optimal input!
         alpha_d = u_opt[-1]
-        max_u = 30
-        alpha_d = max(-max_u,alpha_d)
-        alpha_d = min(max_u, alpha_d)
+        # max_u = 30
+        # alpha_d = max(-max_u,alpha_d)
+        # alpha_d = min(max_u, alpha_d)
 
         return alpha_d# return u_opt[-1] #the last element should be the optimal alpha_ddot
 

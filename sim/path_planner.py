@@ -15,7 +15,7 @@ class PathPlanner:
     Path Planner class - Calculates the optimal trajectory using the casadi NLP solver. 
     """
     def __init__(self, dynamics, q_start, q_goal, map,
-                q_lb = [-100, -100, -5, -1, -100, -100, -100, -100], q_ub = [100, 100, 10, 10, 100, 100, 100, 100],
+                q_lb = [-100, -15*np.pi/180, -5, -1, -100, -100, -100, -100], q_ub = [100, 15*np.pi/180, 10, 10, 100, 100, 100, 100],
                 u_lb = [-1, -1], u_ub = [1, 1], n=1000, dt=0.01):
         """
         Initializes the planner with constraints.
@@ -160,7 +160,8 @@ class PathPlanner:
 
             for ob in self.map.obstacles:
                 if isinstance(ob,Circular_Obstacle):
-                    energy_func += ob.get_cost(q[2, i], q[3, i])
+                    if ob.hill:
+                        energy_func += ob.get_cost(q[2, i], q[3, i])
             term = mtimes(mtimes((qi - q_goal).T,Q),(qi -q_goal)) + mtimes(mtimes(ui.T,R),ui) 
             obj += term + energy_func
 
@@ -209,7 +210,7 @@ class PathPlanner:
 
         # # State constraints
         #constraints.extend([self.q_lb[0] <= q[0, :], q[0, :] <= self.q_ub[0]])
-        #constraints.extend([self.q_lb[1] <= q[1, :], q[1, :] <= self.q_ub[1]])
+        constraints.extend([self.q_lb[1] <= q[1, :], q[1, :] <= self.q_ub[1]])
         #constraints.extend([self.q_lb[2] <= q[2, :], q[2, :] <= self.q_ub[2]])
         #constraints.extend([self.q_lb[3] <= q[0, :], q[3, :] <= self.q_ub[0]])
         #constraints.extend([self.q_lb[4] <= q[1, :], q[4, :] <= self.q_ub[1]])
@@ -231,17 +232,19 @@ class PathPlanner:
             
             constraints.append(q_tp1 == self.path_planner_q_tp1(q_t, u_t)) # You should use the bicycle_robot_model function here somehow.
 
-            #print("constraints.length before obstacles",len(constraints))
-            #Obstacle constraints
-            #NEED TO FIX THIS, ASSUMES OBSTACLES ARE ALL CIRCLES.
-            # for ob in self.map.obstacles:
-            #     #print("self.map.obstacles.length",len(self.map.obstacles))
-            #     if isinstance(ob,Circular_Obstacle):
-            #         x = ob.x
-            #         y = ob.y
-            #         r = ob.radius
-            #         # print(x,y,r)
-            #         constraints.append((q[2,t]-x)**2 + (q[3,t]-y)**2 > r**2) # Define the obstacle constraints.
+            # print("constraints.length before obstacles",len(constraints))
+            # Obstacle constraints
+            # NEED TO FIX THIS, ASSUMES OBSTACLES ARE ALL CIRCLES.
+            for ob in self.map.obstacles:
+                #print("self.map.obstacles.length",len(self.map.obstacles))
+                if isinstance(ob,Circular_Obstacle):
+                    if not(ob.hill):
+                        
+                        x = ob.x
+                        y = ob.y
+                        r = ob.radius
+                        # print(x,y,r)
+                        constraints.append((q[2,t]-x)**2 + (q[3,t]-y)**2 > r**2) # Define the obstacle constraints.
             #print("constraints.length after obstacles",len(constraints))
 
         #Initial and final state constraints
