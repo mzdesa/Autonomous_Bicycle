@@ -5,6 +5,7 @@ from dynamics import *
 from path_planner import *
 from Map import *
 from obstacles import *
+from Bicycle_EKF import EKF
 """
 File to create and run simulations
 """
@@ -30,8 +31,18 @@ q_goal = np.array([0, 0, 9, 9, 0, 0])
 path_planner = PathPlanner(dynamics, q_start, q_goal,my_blank_map)
 plan, inputs = path_planner.plan_to_pose()
 
-#path_planner.plot(plan, inputs)
 
+#path_planner.plot(plan, inputs)
+#Adding noise to v input
+vs = plan[3, :]
+noise = np.random.normal(0, 0.4,len(vs))
+vs = [vs[i] + noise[i] for i in range(len(vs))]
+plan[3, :] = vs
+
+# sigmas = plan[1, :]
+# noise = np.random.normal(0, 0.1,len(vs))
+# sigmas = [sigmas[i] + noise[i] for i in range(len(vs))]
+# plan[1, :] = sigmas
 
 #path_planner.plot(plan, inputs)
 #THE BICYCLE CONTROLLER IS MEANT TO CONTAIN THE PATH PLANNER BUT THEY SEEM TOTALLY DISCONNECTED.

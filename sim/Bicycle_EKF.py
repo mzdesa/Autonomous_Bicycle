@@ -202,69 +202,69 @@ class EKF:
 
 #Example run
 
-#First Generate path plan
-balance_controller = BalancePID(np.array([1, 1, 1]))
-path_planner_controller = PathPlannerController() #For now, just try the balancing dynamics, so use the zero planning controller
-bicycle_controller = VehicleController(balance_controller, path_planner_controller) #create the full state controller
-#IM NOT SURE WE ACTUALLY USE THE PATH PLANNER CONTROLLER CLASS
-#define dynamics
-dynamics = Bicycle() #define a bicycle object
-#list of [radius,x,y]s for circular obstacles.
-Circular_Obstacles_coordinates = [[1,4,4],[1,6,6]]
-Circular_Obstacles_list = [Circular_Obstacle(x[0],x[1],x[2]) for x in Circular_Obstacles_coordinates]
-my_blank_map = Map(0,10,0,10,Circular_Obstacles_list) #define a 10x10 map with no obstacles.
-#Find optimal path from a start and goal position
-q_start = np.array([0, 0, 1, 1, 0, 0, 0, 0])
-q_goal = np.array([0, 0, 8, 8, 0, 0, 0, 0]) 
-path_planner = PathPlanner(dynamics, q_start, q_goal,my_blank_map)
-plan, inputs = path_planner.plan_to_pose()
+# #First Generate path plan
+# balance_controller = BalancePID(np.array([1, 1, 1]))
+# path_planner_controller = PathPlannerController() #For now, just try the balancing dynamics, so use the zero planning controller
+# bicycle_controller = VehicleController(balance_controller, path_planner_controller) #create the full state controller
+# #IM NOT SURE WE ACTUALLY USE THE PATH PLANNER CONTROLLER CLASS
+# #define dynamics
+# dynamics = Bicycle() #define a bicycle object
+# #list of [radius,x,y]s for circular obstacles.
+# Circular_Obstacles_coordinates = [[1,4,4],[1,6,6]]
+# Circular_Obstacles_list = [Circular_Obstacle(x[0],x[1],x[2]) for x in Circular_Obstacles_coordinates]
+# my_blank_map = Map(0,10,0,10,Circular_Obstacles_list) #define a 10x10 map with no obstacles.
+# #Find optimal path from a start and goal position
+# q_start = np.array([0, 0, 1, 1, 0, 0, 0, 0])
+# q_goal = np.array([0, 0, 8, 8, 0, 0, 0, 0]) 
+# path_planner = PathPlanner(dynamics, q_start, q_goal,my_blank_map)
+# plan, inputs = path_planner.plan_to_pose()
 
 
 
-#Create a Kalman filter
-kalman_filer = EKF()
+# #Create a Kalman filter
+# kalman_filer = EKF()
 
-#initial values
-xm= np.matrix([0, 0, 0, 0]).T
-Pm= np.eye(4)
-dt = 0.01
+# #initial values
+# xm= np.matrix([0, 0, 0, 0]).T
+# Pm= np.eye(4)
+# dt = 0.01
 
-#Inputs
-sigmas = plan[1, :]
-vs = plan[7, :]
-v_dots = inputs[0, :]
-sigma_dots = inputs[1, :]
+# #Inputs
+# sigmas = plan[1, :]
+# vs = plan[7, :]
+# v_dots = inputs[0, :]
+# sigma_dots = inputs[1, :]
 
-#Simulate noise
-noise = np.random.normal(0, 0.1,len(vs))
-vs = [vs[i] + noise[i] for i in range(len(vs))]
+# #Simulate noise
+# noise = np.random.normal(0, 0.1,len(vs))
+# vs = [vs[i] + noise[i] for i in range(len(vs))]
 
-#Measurements
-thetas = plan[0, :]
+# #Measurements
+# thetas = plan[0, :]
 
-#Simulate noise
-noise = np.random.normal(0, 0.1,len(thetas))
-thetas = [thetas[i] + noise[i] for i in range(len(thetas))]
+# #Simulate noise
+# noise = np.random.normal(0, 0.1,len(thetas))
+# thetas = [thetas[i] + noise[i] for i in range(len(thetas))]
 
-#For plotting
-states = []
-us = []
-states.append(xm.T.tolist()[0])
+# #For plotting
+# states = []
+# us = []
+# states.append(xm.T.tolist()[0])
 
-#Run the filter for n iterations
-n = len(thetas) -1 
-for i in range(n):
-    u = [sigmas[i], vs[i], sigma_dots[i], v_dots[i]]
-    z = thetas[i]
-    xm, Pm = kalman_filer.run_filter(xm, Pm, z, u, dt)
+# #Run the filter for n iterations
+# n = len(thetas) -1 
+# for i in range(n):
+#     u = [sigmas[i], vs[i], sigma_dots[i], v_dots[i]]
+#     z = thetas[i]
+#     xm, Pm = kalman_filer.run_filter(xm, Pm, z, u, dt)
 
-    #For plotting
-    states.append(xm.T.tolist()[0])
-    us.append([sigmas[i], vs[i], sigma_dots[i], v_dots[i]])
+#     #For plotting
+#     states.append(xm.T.tolist()[0])
+#     us.append([sigmas[i], vs[i], sigma_dots[i], v_dots[i]])
 
-#Plot estimate
-measurements = thetas
-kalman_filer.plot(states, us, measurements, dt)
+# #Plot estimate
+# measurements = thetas
+# kalman_filer.plot(states, us, measurements, dt)
 
 
 
