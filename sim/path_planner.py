@@ -1,4 +1,4 @@
-from casadi import Opti, vertcat, mtimes
+from casadi import Opti, vertcat, mtimes, fabs
 import casadi as cas
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,8 +15,8 @@ class PathPlanner:
     Path Planner class - Calculates the optimal trajectory using the casadi NLP solver. 
     """
     def __init__(self, dynamics, q_start, q_goal, map,
-                q_lb = [-100, -100, -5, -1, -100, -100, -100], q_ub = [100, 100, 10, 10, 100, 100, 100],
-                u_lb = [-10, -10], u_ub = [10, 10], n=1000, dt=0.01):
+                q_lb = [-100, -100, -5, -1, -100, -100, -100, -100], q_ub = [100, 100, 10, 10, 100, 100, 100, 100],
+                u_lb = [-1, -1], u_ub = [1, 1], n=1000, dt=0.01):
         """
         Initializes the planner with constraints.
         Inputs:
@@ -64,7 +64,7 @@ class PathPlanner:
         v_dot, sigma_dot = u[0], u[1]
 
         #assign variables to state vector elements
-        theta, sigma, x, y, theta_dot, v = q[0], q[1], q[2], q[3], q[4], q[5]
+        theta, sigma, x, y, theta_dot, v= q[0], q[1], q[2], q[3], q[4], q[5]
 
 
         #Assembly remaining derivative terms
@@ -138,13 +138,34 @@ class PathPlanner:
         n = q.shape[1] - 1
         obj = 0
         # print("goal", q_goal, q)
+        #Energy function parameters
+        c1 = 1
+        c2 = 1
+        c3 = 1
         for i in range(n):
             qi = q[:, i]
             ui = u[:, i]
-
+            vi = q[5, i]
             # Define one term of the summation here: ((q(i) - q_goal)^T * Q * (q(i) - q_goal) + (u(i)^T * R * u(i)))
-            term = mtimes(mtimes((qi - q_goal).T,Q),(qi - q_goal)) + mtimes(mtimes(ui.T,R),ui)
-            obj += term
+
+
+
+
+
+            if i < 100 or i > (n-100):
+               energy_func = c2*vi**4
+            else:
+               energy_func = (c2*vi**2 + c3*(1/(vi+0.7)))**2
+
+
+            for ob in self.map.obstacles:
+                if isinstance(ob,Circular_Obstacle):
+                    energy_func += ob.get_cost(q[2, i], q[3, i])
+            term = mtimes(mtimes((qi - q_goal).T,Q),(qi -q_goal)) + mtimes(mtimes(ui.T,R),ui) 
+            obj += term + energy_func
+
+     
+
 
         q_last = q[:, n]
         # Define the last term here: (q(N+1) - q_goal)^T * P * (q(N+1) - q_goal)
@@ -207,19 +228,20 @@ class PathPlanner:
             q_t   = q[:, t]
             q_tp1 = q[:, t + 1]
             u_t   = u[:, t]
+            
             constraints.append(q_tp1 == self.path_planner_q_tp1(q_t, u_t)) # You should use the bicycle_robot_model function here somehow.
 
             #print("constraints.length before obstacles",len(constraints))
             #Obstacle constraints
             #NEED TO FIX THIS, ASSUMES OBSTACLES ARE ALL CIRCLES.
-            for ob in self.map.obstacles:
-                #print("self.map.obstacles.length",len(self.map.obstacles))
-                if isinstance(ob,Circular_Obstacle):
-                    x = ob.x
-                    y = ob.y
-                    r = ob.radius
-                    # print(x,y,r)
-                    constraints.append((q[2,t]-x)**2 + (q[3,t]-y)**2 > r**2) # Define the obstacle constraints.
+            # for ob in self.map.obstacles:
+            #     #print("self.map.obstacles.length",len(self.map.obstacles))
+            #     if isinstance(ob,Circular_Obstacle):
+            #         x = ob.x
+            #         y = ob.y
+            #         r = ob.radius
+            #         # print(x,y,r)
+            #         constraints.append((q[2,t]-x)**2 + (q[3,t]-y)**2 > r**2) # Define the obstacle constraints.
             #print("constraints.length after obstacles",len(constraints))
 
         #Initial and final state constraints
@@ -271,7 +293,7 @@ class PathPlanner:
 
         opti.solver('ipopt')
         p_opts = {"expand": False}
-        s_opts = {"max_iter": 1e4, "acceptable_tol": 1e100} #, "constr_viol_tol": 1e10, "tol": 1e10, 
+        s_opts = {"max_iter": 1e4, "acceptable_tol": 1e10, "constr_viol_tol": 1e10}#, "tol": 1e10} 
                     #"acceptable_obj_change_tol": 1e20, "compl_inf_tol": 1e-1,  "compl_inf_tol": 1e-1} #try changing acceptable_tol if you keep getting an infeasable problem
 
 
@@ -323,7 +345,7 @@ class PathPlanner:
         # Inputs plot
         plt.plot(times[:-1], inputs[0, :], label='v_dot')
         plt.plot(times[:-1], inputs[1, :], label='sigma_dot')
-        plt.plot(times[:-1], inputs[2, :], label='alpha_ddot')
+        #plt.plot(times[:-1], inputs[2, :], label='alpha_ddot')
         #plt.plot(times[:-1], inputs[3, :], label='alpha_ddot')
 
         #plt.plot(times[:-1], inputs[4, :], label='alpha_ddot')
